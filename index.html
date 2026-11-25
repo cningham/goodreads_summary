@@ -321,6 +321,8 @@ function toBooks(rows){
   });
 }
 
+// subjects that settle it for a non-fiction book
+const STRONG=["truecrime","memoir","autobiography","nonfiction","non-fiction"];
 const tok=t=>" "+t.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";
 function classify(terms){
   const text=terms.map(t=>tok(t).replace(" true crime "," truecrime "));
@@ -328,7 +330,8 @@ function classify(terms){
   RULES.forEach(([g,kws],pri)=>{
     let s=0;
     text.forEach((t,i)=>{ if(t.includes(" fiction "))anyFiction=true;
-      if(kws.some(k=>{const kk=tok(k).trim();return t.includes(" "+kk+" ")||t.includes(" "+kk+"s ")})) s+=1-Math.min(i,40)*.005 });
+      const hit=kws.filter(k=>{const kk=tok(k).trim();return t.includes(" "+kk+" ")||t.includes(" "+kk+"s ")});
+      if(hit.length) s+=(hit.some(k=>STRONG.includes(k))?2:1)-Math.min(i,40)*.005 });
     s -= pri*0.01;
     if(s>bestScore){bestScore=s;best=g}
   });
@@ -375,7 +378,7 @@ async function description(b){
   try{
     const j=await olFetch(OL+b.olWork+".json");
     let d=j.description; if(d&&typeof d==="object")d=d.value; d=(d||"").replace(/\r/g,"");
-    d=d.split(/\n\s*-{3,}|\n\s*\(\[source\]|\n\s*\*\*\*|\n\s*Contains:/)[0].replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").trim();
+    d=d.split(/\n\s*-{3,}|\n\s*\(\[source\]|\n\s*\*\*\*|\n\s*Contains:/)[0].replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/\*{1,2}([^*\n]+)\*{1,2}/g,"$1").trim();
     descCache[k]=d; store.set(DESC_KEY,descCache); return d;
   }catch(e){return ""}
 }
