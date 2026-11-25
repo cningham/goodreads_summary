@@ -254,11 +254,11 @@ const RULES = [
   ["horror",["horror","gothic","ghost","vampire","zombie","haunted","supernatural","occult"]],
   ["mystery",["mystery","mysteries","detective","crime","thriller","suspense","murder","police procedural","noir"]],
   ["scifi",["science fiction","sci-fi","sci fi","scifi","dystopia","dystopian","space opera","artificial intelligence","time travel","cyberpunk","warhammer","multiverse","parallel universe","aliens","robots"]],
-  ["fantasy",["fantasy","magic","dragons","wizards","sword and sorcery","epic","fairy tale","grimdark"]],
+  ["fantasy",["fantasy","magic","dragons","wizards","sword and sorcery","epic","fairy tale","grimdark","mythology","retellings"]],
   ["romance",["romance","love stories","romantic"]],
   ["historical",["historical fiction","historical"]],
   ["classics",["classic","classics","classic literature"]],
-  ["nonfiction",["nonfiction","non-fiction","non fiction","biography","autobiography","memoir","essays","self-help","true crime","popular science","history"]],
+  ["nonfiction",["nonfiction","non-fiction","non fiction","biography","autobiography","memoir","essays","self-help","truecrime","popular science","history"]],
   ["literary",["literary fiction","literary","contemporary","domestic fiction","psychological fiction","modern fiction"]]
 ];
 // A few well-known titles, used only when Open Library cannot be reached from this page.
@@ -323,7 +323,7 @@ function toBooks(rows){
 
 const tok=t=>" "+t.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";
 function classify(terms){
-  const text=terms.map(tok);
+  const text=terms.map(t=>tok(t).replace(" true crime "," truecrime "));
   let best=null,bestScore=0,anyFiction=false;
   RULES.forEach(([g,kws],pri)=>{
     let s=0;
