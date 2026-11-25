@@ -26,6 +26,18 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body.nodata .needs-data{display:none!important}
+body:not(.nodata) .ghost{display:none}
+.ghost{position:relative;margin-top:22px;padding-bottom:40px}
+.gshelf{display:flex;align-items:flex-end;gap:3px;min-height:290px;padding:0 6px;border-bottom:10px solid var(--line);overflow:hidden}
+.gshelf i{display:block;min-width:12px;border-radius:3px 3px 1px 1px;background:color-mix(in srgb,var(--line) 75%,var(--muted));opacity:.55}
+.gshelf i:nth-child(3n){opacity:.5}.gshelf i:nth-child(4n+1){opacity:.95}
+.gmsg{position:absolute;left:50%;top:120px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);text-align:center;font-family:var(--f-display);font-weight:700;font-size:clamp(18px,3vw,26px);color:var(--ink);background:var(--bg);padding:10px 18px;border-radius:12px;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.gtiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:40px}
+.ggrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;margin-top:12px}
+.gtiles span,.ggrid span{display:block;height:96px;border-radius:12px;border:1px dashed var(--line);background:var(--surface);opacity:.6}
+.ggrid span{height:220px}.ggrid .g8{grid-column:span 8}.ggrid .g4{grid-column:span 4}.ggrid .g12{grid-column:span 12;height:160px}
+@media (max-width:860px){.gtiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ggrid .g8,.ggrid .g4{grid-column:span 12}}
+@media (max-width:520px){.gshelf{min-height:240px;gap:2px}.gshelf i{min-width:8px}.gshelf i:nth-child(n+19){display:none}}
 body.nodata .hero{padding-bottom:28px}
 img{max-width:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
@@ -217,6 +229,11 @@ footer a{color:inherit}
     <div class="status needs-data" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span><span class="prog" id="prog" hidden><i></i></span></div>
     <div class="shelfwrap needs-data"><div class="shelf" id="shelf"></div></div>
     <div class="legend needs-data" id="legend"></div>
+    <div class="ghost" id="ghost" aria-hidden="false">
+      <div class="gshelf"><i style="height:210px;flex:44 1 0"></i><i style="height:183px;flex:37 1 0"></i><i style="height:271px;flex:46 1 0"></i><i style="height:166px;flex:45 1 0"></i><i style="height:153px;flex:55 1 0"></i><i style="height:270px;flex:34 1 0"></i><i style="height:209px;flex:32 1 0"></i><i style="height:270px;flex:43 1 0"></i><i style="height:271px;flex:38 1 0"></i><i style="height:188px;flex:33 1 0"></i><i style="height:188px;flex:53 1 0"></i><i style="height:249px;flex:49 1 0"></i><i style="height:153px;flex:47 1 0"></i><i style="height:166px;flex:31 1 0"></i><i style="height:160px;flex:35 1 0"></i><i style="height:157px;flex:52 1 0"></i><i style="height:218px;flex:41 1 0"></i><i style="height:249px;flex:48 1 0"></i><i style="height:259px;flex:38 1 0"></i><i style="height:263px;flex:56 1 0"></i><i style="height:184px;flex:54 1 0"></i><i style="height:243px;flex:29 1 0"></i><i style="height:159px;flex:30 1 0"></i><i style="height:276px;flex:32 1 0"></i><i style="height:216px;flex:56 1 0"></i><i style="height:261px;flex:50 1 0"></i></div>
+      <label class="gmsg" for="file">Load your Goodreads export to see your year</label>
+      <div class="gtiles"><span></span><span></span><span></span><span></span></div><div class="ggrid"><span class="g8"></span><span class="g4"></span><span class="g12"></span></div>
+    </div>
   </div>
 </div>
 
