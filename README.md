@@ -4,7 +4,7 @@ A visual summary of your reading year from a Goodreads library export: a bookshe
 
 ## Use it
 
-Open the site and press **Load your CSV** (or drop the file on the page). It shows demo data until you do.
+Open the site and press **Load your CSV** (or drop the file on the page).
 
 To get the file: on Goodreads go to **My Books → Import and export → Export library**.
 

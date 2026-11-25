@@ -25,6 +25,8 @@
   --shelf:#5b4c37; --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+body.nodata .needs-data{display:none!important}
+body.nodata .hero{padding-bottom:28px}
 img{max-width:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
 .wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -188,7 +190,7 @@ footer a{color:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
-<body>
+<body class="nodata">
 
 <div class="hero" id="hero">
     <div class="wrap">
@@ -199,8 +201,8 @@ footer a{color:inherit}
         
       </div>
       <div class="controls">
-        <label for="year" class="eyebrow" style="margin-right:2px">Year</label>
-        <select id="year"></select>
+        <label for="year" class="eyebrow needs-data" style="margin-right:2px">Year</label>
+        <select id="year" class="needs-data"></select>
         <label class="btn btn-primary" for="file" tabindex="0" id="fileBtn">Load your CSV</label>
         <input type="file" id="file" accept=".csv,text/csv">
         <span class="helpwrap"><button id="helpBtn" class="ib" aria-label="How to export from Goodreads" aria-expanded="false" aria-controls="help">i</button>
@@ -209,19 +211,19 @@ footer a{color:inherit}
             <ol><li>Open <b>My Books</b>.</li><li>Under Tools, choose <b>Import and export</b>.</li><li>Press <b>Export Library</b>, then download the file when its link appears.</li><li>Load that CSV here.</li></ol>
             <a href="https://www.goodreads.com/review/import" target="_blank" rel="noopener">Open the Goodreads export page ↗</a>
           </div></span>
-        <button id="saveImg" hidden>Save as image</button>
+        <button id="saveImg" class="needs-data" hidden>Save as image</button>
       </div>
     </div>
-    <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span><span class="prog" id="prog" hidden><i></i></span></div>
-    <div class="shelfwrap"><div class="shelf" id="shelf"></div></div>
-    <div class="legend" id="legend"></div>
+    <div class="status needs-data" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span><span class="prog" id="prog" hidden><i></i></span></div>
+    <div class="shelfwrap needs-data"><div class="shelf" id="shelf"></div></div>
+    <div class="legend needs-data" id="legend"></div>
   </div>
 </div>
 
 <div class="pop" id="pop" role="dialog" aria-modal="false" hidden></div>
 <div class="hov" id="hov" hidden></div>
 <div class="picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="pickerT" hidden><div class="pk"><h2 id="pickerT">Which year?</h2><div class="yrs"></div></div></div>
-<main class="wrap">
+<main class="wrap needs-data">
   <section class="tiles" id="tiles"></section>
   <section class="grid">
     <div class="card c8">
@@ -268,7 +270,6 @@ footer a{color:inherit}
 
 
 <script>
-const SAMPLE_CSV = "Book Id,Title,Author,Author l-f,Additional Authors,ISBN,ISBN13,My Rating,Publisher,Binding,Number of Pages,Year Published,Original Publication Year,Date Read,Date Added,Bookshelves,Bookshelves with positions,Exclusive Shelf,My Review,Spoiler,Private Notes,Read Count,Owned Copies\r\n1000,Project Hail Mary,Andy Weir,,,,\"=\"\"\"\"\",5,,Paperback,476,2021,2021,2026/01/19,2025/12/28,sci-fi,,read,,,,1,0\r\n1001,\"The Thursday Murder Club (Thursday Murder Club, #1)\",Richard Osman,,,,\"=\"\"\"\"\",4,,Paperback,382,2020,2020,2026/02/02,2026/01/19,mystery,,read,,,,1,0\r\n1002,Piranesi,Susanna Clarke,,,,\"=\"\"\"\"\",5,,Paperback,272,2020,2020,2026/02/14,2026/02/03,fantasy,,read,,,,1,0\r\n1003,Lonesome Dove,Larry McMurtry,,,,\"=\"\"\"\"\",5,,Paperback,858,1985,1985,2026/03/22,2026/02/15,western,,read,,,,1,0\r\n1004,Educated,Tara Westover,,,,\"=\"\"\"\"\",4,,Paperback,334,2018,2018,2026/04/05,2026/03/23,\"non-fiction, memoir\",,read,,,,1,0\r\n1005,Mexican Gothic,Silvia Moreno-Garcia,,,,\"=\"\"\"\"\",3,,Paperback,301,2020,2020,2026/04/16,2026/04/06,horror,,read,,,,1,0\r\n1006,\"The Name of the Wind (The Kingkiller Chronicle, #1)\",Patrick Rothfuss,,,,\"=\"\"\"\"\",5,,Paperback,662,2007,2007,2026/05/10,2026/04/17,fantasy,,read,,,,1,0\r\n1007,\"The Wise Man's Fear (The Kingkiller Chronicle, #2)\",Patrick Rothfuss,,,,\"=\"\"\"\"\",4,,Paperback,994,2011,2011,2026/06/14,2026/05/11,fantasy,,read,,,,1,0\r\n1008,Pride and Prejudice,Jane Austen,,,,\"=\"\"\"\"\",4,,Paperback,279,1813,1813,2026/06/25,2026/06/15,\"classics, romance\",,read,,,,1,0\r\n1009,Gone Girl,Gillian Flynn,,,,\"=\"\"\"\"\",3.5,,Paperback,419,2012,2012,2026/07/06,2026/06/26,thriller,,read,,,,1,0\r\n1010,Klara and the Sun,Kazuo Ishiguro,,,,\"=\"\"\"\"\",4,,Paperback,303,2021,2021,2026/07/18,2026/07/07,literary-fiction,,read,,,,1,0\r\n1011,Recursion,Blake Crouch,,,,\"=\"\"\"\"\",4.5,,Paperback,329,2019,2019,2026/07/27,2026/07/19,sci-fi,,read,,,,1,0\r\n1012,Beach Read,Emily Henry,,,,\"=\"\"\"\"\",3,,Paperback,361,2020,2020,2026/08/03,2026/07/28,romance,,read,,,,1,0\r\n1013,The Seven Husbands of Evelyn Hugo,Taylor Jenkins Reid,,,,\"=\"\"\"\"\",4,,Paperback,389,2017,2017,2026/08/12,2026/08/04,historical-fiction,,read,,,,1,0\r\n1014,Sapiens: A Brief History of Humankind,Yuval Noah Harari,,,,\"=\"\"\"\"\",3.5,,Paperback,443,2011,2011,2026/09/08,2026/08/13,non-fiction,,read,,,,1,0\r\n1015,The Haunting of Hill House,Shirley Jackson,,,,\"=\"\"\"\"\",4,,Paperback,182,1959,1959,2026/09/15,2026/09/09,\"horror, classics\",,read,,,,1,0\r\n1016,\"Dune (Dune, #1)\",Frank Herbert,,,,\"=\"\"\"\"\",5,,Paperback,658,1965,1965,2026/10/12,2026/09/16,sci-fi,,read,,,,1,0\r\n1017,The Silent Patient,Alex Michaelides,,,,\"=\"\"\"\"\",3,,Paperback,336,2019,2019,2026/10/20,2026/10/13,thriller,,read,,,,1,0\r\n1018,A Gentleman in Moscow,Amor Towles,,,,\"=\"\"\"\"\",5,,Paperback,462,2016,2016,2026/11/08,2026/10/21,historical-fiction,,read,,,,1,0\r\n1019,\"Tomorrow, and Tomorrow, and Tomorrow\",Gabrielle Zevin,,,,\"=\"\"\"\"\",4,,Paperback,401,2022,2022,2026/11/21,2026/11/09,literary-fiction,,read,,,,1,0\r\n1020,\"The Way of Kings (The Stormlight Archive, #1)\",Brandon Sanderson,,,,\"=\"\"\"\"\",0,,Paperback,1007,2010,2010,,2026/11/22,currently-reading,,currently-reading,,,,0,0\r\n1021,Blood Meridian,Cormac McCarthy,,,,\"=\"\"\"\"\",0,,Paperback,337,1985,1985,,2026/09/01,to-read,,to-read,,,,0,0\r\n1022,Children of Time,Adrian Tchaikovsky,,,,\"=\"\"\"\"\",0,,Paperback,600,2015,2015,,2026/08/20,to-read,,to-read,,,,0,0\r\n1023,The Secret History,Donna Tartt,,,,\"=\"\"\"\"\",0,,Paperback,559,1992,1992,,2026/07/01,to-read,,to-read,,,,0,0\r\n1024,Circe,Madeline Miller,,,,\"=\"\"\"\"\",0,,Paperback,393,2018,2018,,2026/06/01,to-read,,to-read,,,,0,0\r\n1025,In Cold Blood,Truman Capote,,,,\"=\"\"\"\"\",0,,Paperback,343,1966,1966,,2026/05/01,to-read,,to-read,,,,0,0\r\n1026,The Martian,Andy Weir,,,,\"=\"\"\"\"\",4,,Paperback,369,2011,2011,2025/11/02,2025/10/10,sci-fi,,read,,,,1,0\r\n1027,Rebecca,Daphne du Maurier,,,,\"=\"\"\"\"\",5,,Paperback,410,1938,1938,2025/08/14,2025/07/30,classics,,read,,,,1,0\r\n";
 
 const GENRES = {
   fantasy:{name:"Fantasy",color:"#7b5ea7"},
@@ -674,9 +675,10 @@ document.getElementById("picker").addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{const el=document.getElementById("picker");if(e.key==="Escape"&&!el.hidden){el.hidden=true;showYear(year)}});
 function readFile(f){const r=new FileReader();r.onload=()=>load(r.result,`your file ${f.name}`);r.readAsText(f)}
 
-async function load(text,label,isSample){
+async function load(text,label){
   try{ books=toBooks(parseCSV(text.replace(/^﻿/,""))) }
-  catch(err){ setStatus(err.message,false); return }
+  catch(err){ document.getElementById("status").classList.remove("needs-data"); setStatus(err.message,false); return }
+  document.body.classList.remove("nodata");
   sourceLabel=label;
   const years=[...new Set(books.filter(b=>b.shelf==="read"&&b.read).map(b=>b.read.getFullYear()))].sort((a,b)=>b-a);
   const thisY=new Date().getFullYear();
@@ -684,9 +686,9 @@ async function load(text,label,isSample){
   document.getElementById("year").innerHTML=(years.length?years:[thisY]).map(y=>`<option value="${y}">${y}</option>`).join("");
   document.getElementById("year").value=year;
   books.forEach(b=>{if(overrides[b.id]){b.genre=overrides[b.id];b.genreSource="your pick"}else{const [g,s]=guessOffline(b);b.genre=g;b.genreSource=s}});
-  sourceLabel=isSample?"Sample library":`${books.length} books loaded`;
+  sourceLabel=`${books.length} books loaded`;
   lookupRun++; setProgress(null); if(olReachable===false){olReachable=null;olFails=0}
-  if(!isSample&&years.length>1){ render(); setStatus(sourceLabel,false); pickYear(years); return }
+  if(years.length>1){ render(); setStatus(sourceLabel,false); pickYear(years); return }
   await showYear(year);
 }
 
@@ -803,7 +805,7 @@ addEventListener("scroll",()=>{if(!hov.hidden)hideHov()},{passive:true});
 document.addEventListener("click",()=>{if(!hov.hidden)hideHov()},true);
 
 buildArt();
-load(SAMPLE_CSV,"a sample library",true);
+document.getElementById("yrTitle").textContent=new Date().getFullYear();
 </script>
 
 </body></html>
