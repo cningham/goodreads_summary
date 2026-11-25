@@ -304,10 +304,11 @@ const store = {
   get(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
-const CACHE_KEY="yots.ol.v2", DESC_KEY="yots.desc.v1";
+const CACHE_KEY="yots.ol.v3", DESC_KEY="yots.desc.v1";
 let lookupCache = store.get(CACHE_KEY)||{};
 let descCache = store.get(DESC_KEY)||{};
 let overrides = store.get("yots.overrides")||{};
+let olFails=0;
 let books=[], year=null, olReachable=null, sourceLabel="";
 
 function parseCSV(text){
@@ -365,10 +366,27 @@ function classify(terms){
 const settle=(g,b)=>g&&b.published&&b.published<1950&&["literary","romance","historical"].includes(g)?"classics":g;
 
 const OL="https://openlibrary.org";
-async function olFetch(url){
-  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),12000);
-  try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error(r.status);return await r.json()}
-  finally{clearTimeout(t)}
+// Open Library rate-limits bursts, so requests are spaced out, and a refused or
+// timed-out request waits and tries again instead of giving up on the book.
+let olGap=350, olNext=0;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function olSlot(){const now=Date.now(), at=Math.max(now,olNext); olNext=at+olGap; if(at>now) await wait(at-now)}
+async function olFetch(url,tries=4){
+  for(let i=0;;i++){
+    await olSlot();
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),20000);
+    try{
+      const r=await fetch(url,{signal:ctl.signal});
+      if(r.ok) return await r.json();
+      if(r.status===404) return {docs:[]};
+      if(r.status===429||r.status>=500){ olGap=Math.min(2000,olGap*2); const ra=parseFloat(r.headers.get("Retry-After")); throw Object.assign(new Error(r.status),{retryAfter:ra>0?ra*1000:0}) }
+      throw new Error(r.status);
+    }catch(e){
+      if(i>=tries-1) throw e;
+      olGap=Math.min(2000,Math.max(olGap,700));
+      await wait(e.retryAfter||1500*2**i);
+    }finally{clearTimeout(t)}
+  }
 }
 const lookupKey=b=>b.isbn||norm(b.title+" "+b.author);
 function applyLookup(b,info){
@@ -390,7 +408,7 @@ async function lookup(b){
       const d2=j.docs&&j.docs[0]; if(d2&&(!doc||(d2.subject||[]).length))doc=Object.assign({},d2,doc&&doc.cover_i?{cover_i:doc.cover_i}:{});
     }
     olReachable=true;
-  }catch(e){ if(olReachable===null) olReachable=false; return undefined }
+  }catch(e){ olFails++; if(!olReachable&&olFails>=3) olReachable=false; return undefined }
   const info=doc?{genre:settle(classify((doc.subject||[]).slice(0,80)),b),work:doc.key||"",cover:doc.cover_i||0,first:(doc.first_sentence||[])[0]||""}:{genre:null,work:"",cover:0,first:""};
   lookupCache[key]=info; store.set(CACHE_KEY,lookupCache);
   return info;
@@ -418,15 +436,18 @@ function guessOffline(b){
 async function resolveGenres(list){
   list.forEach(b=>{ if(overrides[b.id]){b.genre=overrides[b.id];b.genreSource="your pick"} });
   // the selected year, reading now and to-read first, then the rest of the library
-  const first=b=>(b.read&&b.read.getFullYear()===year)||b.shelf!=="read";
-  const queue=[...list.filter(first),...list.filter(b=>!first(b))];
+  const rank=b=>b.read&&b.read.getFullYear()===year?0:b.shelf==="currently-reading"?1:b.shelf==="to-read"?2:3;
+  const queue=list.map((b,i)=>[rank(b),i,b]).sort((x,y)=>x[0]-y[0]||x[1]-y[1]).map(x=>x[2]);
+  const failed=[];
   const total=queue.length; let done=0, dirty=false, timer=null;
   const flush=()=>{timer=null;if(dirty){dirty=false;render()}};
   const status=()=>{ if(olReachable!==false) setStatus(`Looking up books on Open Library… ${done} of ${total}`,true) };
   status();
+  let retry=false;
   async function one(b){
     const shelfG=b.shelves?classify(b.shelves.replace(/-/g," ").split(/,\s*/)):null;
     const info=await lookup(b);
+    if(info===undefined&&olReachable!==false&&!retry)failed.push(b);
     applyLookup(b,info);
     if(!overrides[b.id]){
       const g=info&&info.genre;
@@ -434,13 +455,15 @@ async function resolveGenres(list){
       else if(shelfG){b.genre=shelfG;b.genreSource="your shelves"}
       else {const [o,src]=guessOffline(b);b.genre=o;b.genreSource=src}
     }
-    done++; status();
+    if(!retry){done++; status()}
     dirty=true; if(!timer)timer=setTimeout(flush,700);
   }
   async function worker(){ while(queue.length) await one(queue.shift()) }
   // probe one first so a blocked network fails fast
   if(queue.length) await one(queue.shift());
-  await Promise.all([worker(),worker(),worker(),worker()]);
+  await Promise.all([worker(),worker(),worker()]);
+  // one more slow pass for books whose lookup was refused or timed out
+  if(failed.length&&olReachable!==false){retry=true;olGap=Math.max(olGap,1000);queue.push(...failed);await worker()}
   if(timer){clearTimeout(timer);timer=null}
 }
 
@@ -633,7 +656,7 @@ async function load(text,label,isSample){
   await resolveGenres(books);
   render();
   const n=books.length, src="";
-  setStatus(isSample?"Sample library":`${n} books loaded`,false);
+  setStatus(olReachable===false?"Open Library didn’t respond, so genres are guessed. Reload to try again.":isSample?"Sample library":`${n} books loaded`,false);
 }
 
 // share image
