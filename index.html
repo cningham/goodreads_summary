@@ -62,6 +62,17 @@ button:focus-visible,select:focus-visible,.btn:focus-visible,.spine:focus-visibl
 .spine span{text-shadow:0 1px 3px rgba(0,0,0,.6);overflow:hidden;text-overflow:ellipsis;max-height:100%}
 .spine.five{padding-top:22px}
 .spine .stars{position:absolute;top:6px;font-size:9px;letter-spacing:-1px;opacity:.85;writing-mode:horizontal-tb;transform:rotate(180deg)}
+.shelf.mini{min-height:240px;justify-content:flex-start;padding:0 4px}
+.spine.now::after{content:"";position:absolute;bottom:-1px;left:50%;width:8px;height:22px;margin-left:-4px;background:#f2c14e;clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%);transform:rotate(180deg)}
+.spine.lit{transform:rotate(180deg) translateY(10px);box-shadow:inset -3px 0 0 rgba(0,0,0,.22),0 0 0 2px var(--ink),4px 0 10px rgba(0,0,0,.35)}
+.cal .d.hot{box-shadow:inset 0 0 0 2px var(--ink)}
+.cal .d.hot.on{box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 4px rgba(255,255,255,.75)}
+.hov{position:fixed;z-index:60;pointer-events:none;display:flex;gap:12px;align-items:center;width:max-content;max-width:min(300px,calc(100vw - 32px));padding:10px 14px 10px 10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.25)}
+.hov .cv{width:48px;height:72px;border-radius:3px;flex:none;background-size:100% 100%,auto 100%;background-position:0 0,center bottom;box-shadow:0 3px 10px rgba(0,0,0,.3);overflow:hidden}
+.hov .cv img{width:100%;height:100%;object-fit:cover;display:block}
+.hov b{display:block;font-family:var(--f-display);font-size:15px;line-height:1.2}
+.hov small{display:block;color:var(--muted);font-size:13px}
+.hov .dt{font-family:var(--f-data);font-size:11px;color:var(--muted);margin-top:4px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 
@@ -185,6 +196,7 @@ footer a{color:inherit}
 </div>
 
 <div class="pop" id="pop" role="dialog" aria-modal="false" hidden></div>
+<div class="hov" id="hov" hidden></div>
 <main class="wrap">
   <section class="tiles" id="tiles"></section>
   <section class="grid">
@@ -220,8 +232,7 @@ footer a{color:inherit}
     </div>
     <div class="card c6">
       <h2>Up next</h2>
-      
-      <div class="bars" id="next"></div>
+      <div class="shelfwrap"><div class="shelf mini" id="next"></div></div>
     </div>
     <div class="card c12">
       <h2>Every book</h2>
@@ -515,7 +526,7 @@ function render(){
       const i=w*7+d-off; if(i<0||i>=ndays){cal+='<span class="d out"></span>';continue}
       const dt=new Date(year,0,1+i), bs=fin[dt.toDateString()], ds=dt.toLocaleDateString("en",{day:"numeric",month:"short"});
       const cur=ys.find(x=>x.read>=dt);
-      if(cur){const G=GENRES[cur.genre]||GENRES.other;cal+=`<span class="d${bs?" on":""} pat-${cur.genre}" style="background-color:${G.color}" title="${ds}: ${esc(cur.title)}${bs?" (finished)":""}"></span>`}
+      if(cur){const G=GENRES[cur.genre]||GENRES.other;cal+=`<span class="d${bs?" on":""} pat-${cur.genre}" data-book="${esc(cur.id)}" data-day="${ds}${bs?" · finished":""}" aria-label="${ds}: ${esc(cur.title)}" style="background-color:${G.color}"></span>`}
       else cal+=`<span class="d" title="${ds}"></span>`;
     }
   }
@@ -563,10 +574,11 @@ function render(){
 
   // up next
   const cur=books.filter(b=>b.shelf==="currently-reading"), tbr=books.filter(b=>b.shelf==="to-read");
-  const tc={};tbr.forEach(b=>tc[b.genre]=(tc[b.genre]||0)+1);
-  const tk=Object.keys(tc).sort((a,b)=>tc[b]-tc[a]);
-  void `${cur.length?`Reading now: ${cur.map(b=>b.title).join(", ")}. `:""}${tbr.length} on your to-read shelf, ${fmt(tbr.reduce((s,b)=>s+b.pages,0))} pages, by genre:`;
-  document.getElementById("next").innerHTML=tk.map(g=>`<div class="bar"><span>${GENRES[g].name}</span><div class="track"><div class="fill pat-${g}" style="width:${tc[g]/tbr.length*100}%;background-color:${GENRES[g].color}"></div></div><span class="n">${tc[g]}</span></div>`).join("");
+  const nextBooks=[...cur,...tbr.slice().sort((a,b)=>(b.added||0)-(a.added||0))];
+  document.getElementById("next").innerHTML=nextBooks.map(b=>{
+    const p=Math.max(80,Math.min(900,b.pages||250)), G=GENRES[b.genre]||GENRES.other;
+    const h=Math.round(130+(p-80)/820*90), w=Math.round(24+(p-80)/820*22);
+    return `<div class="spine art-${b.genre}${b.shelf==="currently-reading"?" now":""}" tabindex="0" role="button" data-book="${esc(b.id)}" style="height:${h}px;width:${w}px;flex:none;background-color:${G.color};background-position:0 0,${hashPos(b.id)}% 100%" title="${esc(b.title)} by ${esc(b.author)}" aria-label="${esc(b.title)}, ${G.name}"><span>${esc(b.title.replace(/\u2019/g,"'"))}</span></div>`}).join("")||'<div class="empty" style="width:100%">Nothing on your to-read shelf.</div>';
 
   // table
   const opts=Object.entries(GENRES).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join("");
@@ -687,6 +699,34 @@ function closePop(){pop.hidden=true}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-book]");if(t){e.stopPropagation();openPop(t.dataset.book,t);return}if(!pop.hidden&&!pop.contains(e.target))closePop()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closePop();const t=e.target.closest&&e.target.closest("[data-book]");if(t&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openPop(t.dataset.book,t)}});
 addEventListener("resize",closePop);
+
+// reading calendar hover: show the book being read that day
+const hov=document.getElementById("hov"); let hovId=null;
+function lightBook(id){
+  document.querySelectorAll(".cal .d.hot,.spine.lit").forEach(e=>e.classList.remove("hot","lit"));
+  if(id==null)return;
+  document.querySelectorAll(".cal .d[data-book]").forEach(e=>{if(e.dataset.book===id)e.classList.add("hot")});
+  document.querySelectorAll("#shelf .spine").forEach(e=>{if(e.dataset.book===id)e.classList.add("lit")});
+}
+function showHov(day){
+  const id=day.dataset.book, b=books.find(x=>String(x.id)===id); if(!b)return;
+  if(id!==hovId){
+    const G=GENRES[b.genre]||GENRES.other, cu=coverUrl(b);
+    hov.innerHTML=`<div class="cv art-${b.genre}" style="background-color:${G.color}">${cu?`<img alt="" src="${cu}" onerror="this.remove()">`:""}</div><div><b>${esc(b.title)}</b><small>${esc(b.author)}</small><div class="dt">${esc(day.dataset.day)}</div></div>`;
+    hovId=id; lightBook(id);
+  } else hov.querySelector(".dt").textContent=day.dataset.day;
+  hov.hidden=false;
+  const r=day.getBoundingClientRect(), w=hov.offsetWidth, h=hov.offsetHeight, vw=document.documentElement.clientWidth;
+  const left=Math.max(12,Math.min(r.left+r.width/2-w/2,vw-w-12));
+  const top=r.top-h-10>8?r.top-h-10:r.bottom+10;
+  hov.style.left=left+"px"; hov.style.top=top+"px";
+}
+function hideHov(){hov.hidden=true;hovId=null;lightBook(null)}
+const calEl=document.getElementById("cal");
+calEl.addEventListener("pointerover",e=>{const d=e.target.closest(".d[data-book]");if(d&&e.pointerType!=="touch")showHov(d);else if(!d)hideHov()});
+calEl.addEventListener("pointerleave",hideHov);
+addEventListener("scroll",()=>{if(!hov.hidden)hideHov()},{passive:true});
+document.addEventListener("click",()=>{if(!hov.hidden)hideHov()},true);
 
 buildArt();
 load(SAMPLE_CSV,"a sample library",true);
