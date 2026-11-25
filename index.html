@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Year on the Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a bookshelf hero of the year's spines, then a two-column dashboard grid of stats, timeline and breakdowns */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --ink:#1b2125; --muted:#5d666c; --line:#dfe2dc; --accent:#2f6f62;
+  --shelf:#c9b89a; --tip:#1b2125; --tip-fg:#f3f4f1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-data:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --hero-tint:#2f6f62; --hero-wash:#2f6f6229;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171a; --surface:#1a2125; --ink:#e8ebe7; --muted:#9aa4a9; --line:#2a3338; --accent:#6cc2ae;
+  --shelf:#5b4c37; --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171a; --surface:#1a2125; --ink:#e8ebe7; --muted:#9aa4a9; --line:#2a3338; --accent:#6cc2ae;
+  --shelf:#5b4c37; --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* hero */
+.hero{margin-top:calc(-1 * env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + 28px);padding-bottom:0;
+  background:linear-gradient(180deg,var(--hero-wash) 0%,transparent 100%),var(--bg);transition:background .6s}
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.top h1{font-size:clamp(34px,6vw,60px);font-weight:800;letter-spacing:-.02em;line-height:1}
+.top h1 .yr{color:var(--hero-tint)}
+.sub{color:var(--muted);margin-top:8px;max-width:60ch}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 12px;cursor:pointer}
+.btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+button:focus-visible,select:focus-visible,.btn:focus-visible,.spine:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.status{font-size:13px;color:var(--muted);margin-top:14px;display:flex;gap:8px;align-items:center;min-height:20px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.dot.busy{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+.shelfwrap{margin-top:22px;overflow-x:auto;padding-bottom:2px}
+.shelf{display:flex;align-items:flex-end;gap:3px;min-height:290px;padding:0 6px;border-bottom:10px solid var(--shelf);width:100%;min-width:max-content}
+.spine{position:relative;border-radius:3px 3px 1px 1px;color:#fff;display:flex;align-items:center;justify-content:center;
+  writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-display);font-weight:700;font-size:12px;line-height:1.1;
+  padding:10px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default;box-shadow:inset -3px 0 0 rgba(0,0,0,.22),inset 2px 0 0 rgba(255,255,255,.14),0 0 0 1px rgba(0,0,0,.35),4px 0 10px rgba(0,0,0,.35);
+  transition:transform .2s;min-width:18px;font-size:clamp(11px,1.1vw,14px)}
+@media (max-width:520px){.spine{min-width:13px;font-size:10px}.shelf{gap:2px;padding:0 2px;min-height:240px}}
+[data-book]{cursor:pointer}
+.tl:hover{text-decoration:underline}
+.spine:hover{transform:rotate(180deg) translateY(6px)}
+.spine span{text-shadow:0 1px 3px rgba(0,0,0,.6);overflow:hidden;text-overflow:ellipsis;max-height:100%}
+.spine.five{padding-top:22px}
+.spine .stars{position:absolute;top:6px;font-size:9px;letter-spacing:-1px;opacity:.85;writing-mode:horizontal-tb;transform:rotate(180deg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* genre art: filled in by script as .art-<genre> */
+
+/* grid */
+main{padding-block:28px 48px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.tile .v{font-family:var(--f-display);font-size:clamp(28px,4vw,40px);font-weight:800;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums}
+.tile .h{color:var(--muted);font-size:13px;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;margin-top:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.card h2{font-size:18px;font-weight:700}
+.card .hint{color:var(--muted);font-size:13px;margin-top:2px}
+.c12{grid-column:span 12}.c8{grid-column:span 8}.c7{grid-column:span 7}.c6{grid-column:span 6}.c5{grid-column:span 5}.c4{grid-column:span 4}.c3{grid-column:span 3}
+@media (max-width:860px){.c8,.c7,.c6,.c5,.c4,.c3{grid-column:span 12}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* timeline */
+.months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;margin-top:16px;align-items:end;height:220px}
+.month{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:100%;gap:2px;min-width:0}
+.month .blk{border-radius:2px;min-height:6px}
+.month .cnt{text-align:center;font-size:12px;color:var(--muted);font-family:var(--f-data)}
+.mlabels{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;margin-top:6px;font-size:12px;color:var(--muted);text-align:center;border-top:1px solid var(--line);padding-top:6px}
+@media (max-width:520px){.mlabels .pg{display:none!important}}
+.mlabels .pg{display:block;font-family:var(--f-data);font-size:10px;opacity:.8}
+
+/* gantt */
+.gtop{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between;align-items:flex-start}
+.gtop>div:first-child{max-width:62ch;min-width:0}
+.gstats{display:flex;gap:20px;flex-wrap:wrap}
+.gstats div{min-width:0}.gstats b{display:block;font-family:var(--f-display);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.gstats small{color:var(--muted);font-size:12px}
+.gantt{margin-top:16px;overflow-x:auto}
+.ginner{min-width:620px}
+.grow{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;align-items:center;height:26px}
+.grow .gl{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtrack{position:relative;height:100%;background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:calc(100% / 12) 100%;border-right:1px solid var(--line)}
+.gbar{position:absolute;top:5px;bottom:5px;border-radius:4px;min-width:4px}
+.gbar em{position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);font-style:normal;font-size:11px;font-family:var(--f-data);color:var(--muted);white-space:nowrap}
+.gbar.flip em{left:auto;right:calc(100% + 6px)}
+.gaxis{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;margin-top:4px}
+.gaxis .m{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));font-size:11px;color:var(--muted)}
+.gaxis .m span{padding-left:4px}
+/* calendar */
+.calwrap{overflow-x:auto;margin-top:14px}
+.cal{display:grid;grid-template-rows:16px repeat(7,auto);grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;width:100%;min-width:760px}
+.cal .d{border-radius:3px;background:var(--line);aspect-ratio:1}
+.cal .d.on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.75)}
+.cal .d.out{background:transparent}
+.cal .ml{font-size:11px;color:var(--muted);white-space:nowrap;overflow:visible}
+/* book popover */
+.pop{position:absolute;z-index:50;width:min(340px,calc(100vw - 32px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28);overflow:hidden}
+.pop .ph{position:relative;display:flex;gap:14px;align-items:flex-end;padding:16px;min-height:120px;color:#fff;background-size:100% 100%,cover;background-position:0 0,center bottom}
+.pop .ph img{width:64px;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.4);flex:none}
+.pop .ph h3{font-size:20px;line-height:1.15;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.pop .ph .by{font-size:14px;opacity:.9;margin-top:2px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.pop .x{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.35);color:#fff;border:0;border-radius:50%;width:28px;height:28px;padding:0;font-size:16px;line-height:28px}
+.pop dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin:0;padding:14px 16px}
+.pop dt{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pop dd{margin:0;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.pop .ds{padding:12px 16px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--ink)}
+.pop .ds p{margin:4px 0 0;max-height:150px;overflow:auto;white-space:pre-line}
+.pop .ds dt,.pop .rv dt{margin-bottom:2px}
+.pop .rv{padding:0 16px 16px;font-size:14px;color:var(--ink);max-height:160px;overflow:auto;white-space:pre-line;border-top:1px solid var(--line);padding-top:12px}
+/* bars */
+.bars{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.bar{display:grid;grid-template-columns:110px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:14px}
+.bar .track{height:14px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;border-radius:4px}
+.bar .n{text-align:right;color:var(--muted);font-family:var(--f-data);font-size:12px}
+
+.hl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-top:14px}
+.hl div{min-width:0}
+.hl b{display:block;font-weight:600;overflow-wrap:anywhere}
+.hl small{color:var(--muted)}
+
+.hist{display:flex;align-items:flex-end;gap:6px;height:140px;margin-top:16px}
+.hist .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%}
+.hist .b{width:100%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
+.hist .lab{font-size:11px;color:var(--muted);font-family:var(--f-data)}
+.hist .c{font-size:11px;font-family:var(--f-data)}
+
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.t{font-weight:600;min-width:180px}
+td .au{display:block;font-weight:400;color:var(--muted);font-size:13px}
+td select{padding:4px 8px;font-size:13px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.empty{padding:40px 0;color:var(--muted);text-align:center}
+.drop{outline:3px dashed var(--accent);outline-offset:-8px}
+footer{color:var(--muted);font-size:12px;padding-bottom:32px}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="hero" id="hero">
+    <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="eyebrow">Goodreads reading year</div>
+        <h1>Your <span class="yr" id="yrTitle">2026</span> on the shelf</h1>
+        
+      </div>
+      <div class="controls">
+        <label for="year" class="eyebrow" style="margin-right:2px">Year</label>
+        <select id="year"></select>
+        <label class="btn btn-primary" for="file" tabindex="0" id="fileBtn">Load your CSV</label>
+        <input type="file" id="file" accept=".csv,text/csv">
+        <button id="saveImg" hidden>Save as image</button>
+      </div>
+    </div>
+    <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span></div>
+    <div class="shelfwrap"><div class="shelf" id="shelf"></div></div>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<div class="pop" id="pop" role="dialog" aria-modal="false" hidden></div>
+<main class="wrap">
+  <section class="tiles" id="tiles"></section>
+  <section class="grid">
+    <div class="card c8">
+      <h2>Month by month</h2>
+      <div class="months" id="months"></div>
+      <div class="mlabels" id="mlabels"></div>
+    </div>
+    <div class="card c4">
+      <h2>Genres</h2>
+      <div class="bars" id="genres"></div>
+    </div>
+    <div class="card c12">
+      <h2>Reading calendar</h2>
+      <div class="calwrap"><div class="cal" id="cal"></div></div>
+    </div>
+    <div class="card c5">
+      <h2>Highlights</h2>
+      <div class="hl" id="highlights"></div>
+    </div>
+    <div class="card c4">
+      <h2>Your ratings</h2>
+      
+      <div class="hist" id="ratings"></div>
+    </div>
+    <div class="card c3" id="authorsCard">
+      <h2>Top authors</h2>
+      <div class="bars" id="authors"></div>
+    </div>
+    <div class="card c6">
+      <h2>Decade first published</h2>
+      <div class="bars" id="decades"></div>
+    </div>
+    <div class="card c6">
+      <h2>Up next</h2>
+      
+      <div class="bars" id="next"></div>
+    </div>
+    <div class="card c12">
+      <h2>Every book</h2>
+      
+      <div class="tablewrap"><table><thead><tr><th>Finished</th><th>Book</th><th>Rating</th><th>Pages</th><th>Genre</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+
+<script>
+const SAMPLE_CSV = "Book Id,Title,Author,Author l-f,Additional Authors,ISBN,ISBN13,My Rating,Publisher,Binding,Number of Pages,Year Published,Original Publication Year,Date Read,Date Added,Bookshelves,Bookshelves with positions,Exclusive Shelf,My Review,Spoiler,Private Notes,Read Count,Owned Copies\r\n1000,Project Hail Mary,Andy Weir,,,,\"=\"\"\"\"\",5,,Paperback,476,2021,2021,2026/01/19,2025/12/28,sci-fi,,read,,,,1,0\r\n1001,\"The Thursday Murder Club (Thursday Murder Club, #1)\",Richard Osman,,,,\"=\"\"\"\"\",4,,Paperback,382,2020,2020,2026/02/02,2026/01/19,mystery,,read,,,,1,0\r\n1002,Piranesi,Susanna Clarke,,,,\"=\"\"\"\"\",5,,Paperback,272,2020,2020,2026/02/14,2026/02/03,fantasy,,read,,,,1,0\r\n1003,Lonesome Dove,Larry McMurtry,,,,\"=\"\"\"\"\",5,,Paperback,858,1985,1985,2026/03/22,2026/02/15,western,,read,,,,1,0\r\n1004,Educated,Tara Westover,,,,\"=\"\"\"\"\",4,,Paperback,334,2018,2018,2026/04/05,2026/03/23,\"non-fiction, memoir\",,read,,,,1,0\r\n1005,Mexican Gothic,Silvia Moreno-Garcia,,,,\"=\"\"\"\"\",3,,Paperback,301,2020,2020,2026/04/16,2026/04/06,horror,,read,,,,1,0\r\n1006,\"The Name of the Wind (The Kingkiller Chronicle, #1)\",Patrick Rothfuss,,,,\"=\"\"\"\"\",5,,Paperback,662,2007,2007,2026/05/10,2026/04/17,fantasy,,read,,,,1,0\r\n1007,\"The Wise Man's Fear (The Kingkiller Chronicle, #2)\",Patrick Rothfuss,,,,\"=\"\"\"\"\",4,,Paperback,994,2011,2011,2026/06/14,2026/05/11,fantasy,,read,,,,1,0\r\n1008,Pride and Prejudice,Jane Austen,,,,\"=\"\"\"\"\",4,,Paperback,279,1813,1813,2026/06/25,2026/06/15,\"classics, romance\",,read,,,,1,0\r\n1009,Gone Girl,Gillian Flynn,,,,\"=\"\"\"\"\",3.5,,Paperback,419,2012,2012,2026/07/06,2026/06/26,thriller,,read,,,,1,0\r\n1010,Klara and the Sun,Kazuo Ishiguro,,,,\"=\"\"\"\"\",4,,Paperback,303,2021,2021,2026/07/18,2026/07/07,literary-fiction,,read,,,,1,0\r\n1011,Recursion,Blake Crouch,,,,\"=\"\"\"\"\",4.5,,Paperback,329,2019,2019,2026/07/27,2026/07/19,sci-fi,,read,,,,1,0\r\n1012,Beach Read,Emily Henry,,,,\"=\"\"\"\"\",3,,Paperback,361,2020,2020,2026/08/03,2026/07/28,romance,,read,,,,1,0\r\n1013,The Seven Husbands of Evelyn Hugo,Taylor Jenkins Reid,,,,\"=\"\"\"\"\",4,,Paperback,389,2017,2017,2026/08/12,2026/08/04,historical-fiction,,read,,,,1,0\r\n1014,Sapiens: A Brief History of Humankind,Yuval Noah Harari,,,,\"=\"\"\"\"\",3.5,,Paperback,443,2011,2011,2026/09/08,2026/08/13,non-fiction,,read,,,,1,0\r\n1015,The Haunting of Hill House,Shirley Jackson,,,,\"=\"\"\"\"\",4,,Paperback,182,1959,1959,2026/09/15,2026/09/09,\"horror, classics\",,read,,,,1,0\r\n1016,\"Dune (Dune, #1)\",Frank Herbert,,,,\"=\"\"\"\"\",5,,Paperback,658,1965,1965,2026/10/12,2026/09/16,sci-fi,,read,,,,1,0\r\n1017,The Silent Patient,Alex Michaelides,,,,\"=\"\"\"\"\",3,,Paperback,336,2019,2019,2026/10/20,2026/10/13,thriller,,read,,,,1,0\r\n1018,A Gentleman in Moscow,Amor Towles,,,,\"=\"\"\"\"\",5,,Paperback,462,2016,2016,2026/11/08,2026/10/21,historical-fiction,,read,,,,1,0\r\n1019,\"Tomorrow, and Tomorrow, and Tomorrow\",Gabrielle Zevin,,,,\"=\"\"\"\"\",4,,Paperback,401,2022,2022,2026/11/21,2026/11/09,literary-fiction,,read,,,,1,0\r\n1020,\"The Way of Kings (The Stormlight Archive, #1)\",Brandon Sanderson,,,,\"=\"\"\"\"\",0,,Paperback,1007,2010,2010,,2026/11/22,currently-reading,,currently-reading,,,,0,0\r\n1021,Blood Meridian,Cormac McCarthy,,,,\"=\"\"\"\"\",0,,Paperback,337,1985,1985,,2026/09/01,to-read,,to-read,,,,0,0\r\n1022,Children of Time,Adrian Tchaikovsky,,,,\"=\"\"\"\"\",0,,Paperback,600,2015,2015,,2026/08/20,to-read,,to-read,,,,0,0\r\n1023,The Secret History,Donna Tartt,,,,\"=\"\"\"\"\",0,,Paperback,559,1992,1992,,2026/07/01,to-read,,to-read,,,,0,0\r\n1024,Circe,Madeline Miller,,,,\"=\"\"\"\"\",0,,Paperback,393,2018,2018,,2026/06/01,to-read,,to-read,,,,0,0\r\n1025,In Cold Blood,Truman Capote,,,,\"=\"\"\"\"\",0,,Paperback,343,1966,1966,,2026/05/01,to-read,,to-read,,,,0,0\r\n1026,The Martian,Andy Weir,,,,\"=\"\"\"\"\",4,,Paperback,369,2011,2011,2025/11/02,2025/10/10,sci-fi,,read,,,,1,0\r\n1027,Rebecca,Daphne du Maurier,,,,\"=\"\"\"\"\",5,,Paperback,410,1938,1938,2025/08/14,2025/07/30,classics,,read,,,,1,0\r\n";
+
+const GENRES = {
+  fantasy:{name:"Fantasy",color:"#7b5ea7"},
+  scifi:{name:"Sci-fi",color:"#2f7fc1"},
+  mystery:{name:"Mystery & thriller",color:"#1f8a84"},
+  horror:{name:"Horror",color:"#a8352b"},
+  romance:{name:"Romance",color:"#c9507f"},
+  literary:{name:"Literary",color:"#b9811a"},
+  classics:{name:"Classics",color:"#8a6448"},
+  western:{name:"Western",color:"#cf6a26"},
+  historical:{name:"Historical",color:"#6a8a2a"},
+  nonfiction:{name:"Non-fiction",color:"#56697c"},
+  other:{name:"Other",color:"#80878f"}
+};
+// keyword -> genre, checked against Open Library subjects and Goodreads shelves
+const RULES = [
+  ["western",["western","westerns","cowboy","frontier and pioneer","ranch life","outlaws"]],
+  ["horror",["horror","gothic","ghost","vampire","zombie","haunted","supernatural","occult"]],
+  ["mystery",["mystery","mysteries","detective","crime","thriller","suspense","murder","police procedural","noir"]],
+  ["scifi",["science fiction","sci-fi","sci fi","scifi","dystopia","dystopian","space opera","artificial intelligence","time travel","cyberpunk","warhammer","multiverse","parallel universe","aliens","robots"]],
+  ["fantasy",["fantasy","magic","dragons","wizards","sword and sorcery","epic","fairy tale","grimdark"]],
+  ["romance",["romance","love stories","romantic"]],
+  ["historical",["historical fiction","historical"]],
+  ["classics",["classic","classics","classic literature"]],
+  ["nonfiction",["nonfiction","non-fiction","non fiction","biography","autobiography","memoir","essays","self-help","true crime","popular science","history"]],
+  ["literary",["literary fiction","literary","contemporary","domestic fiction","psychological fiction","modern fiction"]]
+];
+// A few well-known titles, used only when Open Library cannot be reached from this page.
+const OFFLINE_HINTS = {
+  "true grit":"western","the blue castle":"classics","butchers crossing":"western","el camino":"classics",
+  "bat eater":"horror","dark matter":"scifi","hereticus":"scifi","xenos":"scifi","malleus":"scifi","dusk":"western",
+  "the final empire":"fantasy","the well of ascension":"fantasy","the hero of ages":"fantasy",
+  "the devotion of suspect x":"mystery","the sisters brothers":"western","between two fires":"horror",
+  "perfume":"historical","a short stay in hell":"horror","warlock":"western",
+  "blood meridian":"western","what you are looking for is in the library":"literary","news of the world":"western",
+  "dune":"scifi","project hail mary":"scifi","the hobbit":"fantasy","pride and prejudice":"classics","1984":"classics",
+  "the name of the wind":"fantasy","gone girl":"mystery","the silent patient":"mystery","it":"horror",
+  "lonesome dove":"western","the way of kings":"fantasy","sapiens":"nonfiction","educated":"nonfiction",
+  "recursion":"scifi","children of time":"scifi","the secret history":"literary","circe":"fantasy","in cold blood":"nonfiction","the martian":"scifi","rebecca":"classics"
+};
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const CACHE_KEY="yots.ol.v2", DESC_KEY="yots.desc.v1";
+let lookupCache = store.get(CACHE_KEY)||{};
+let descCache = store.get(DESC_KEY)||{};
+let overrides = store.get("yots.overrides")||{};
+let books=[], year=null, olReachable=null, sourceLabel="";
+
+function parseCSV(text){
+  const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++} else q=false } else f+=c }
+    else if(c==='"') q=true;
+    else if(c===','){row.push(f);f=""}
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n')i++; row.push(f);f=""; if(row.length>1||row[0]!=="")rows.push(row); row=[] }
+    else f+=c;
+  }
+  if(f!==""||row.length){row.push(f);rows.push(row)}
+  const head=rows.shift()||[];
+  return rows.map(r=>Object.fromEntries(head.map((h,i)=>[h.trim(),(r[i]??"").trim()])));
+}
+const clean=v=>(v||"").replace(/^="?|"$/g,"").trim();
+const norm=s=>s.toLowerCase().replace(/\(.*?\)/g,"").replace(/[’'`]/g,"").replace(/[^a-z0-9À-ɏ ]+/g," ").replace(/\s+/g," ").trim();
+const baseTitle=t=>t.replace(/\s*\(.*?\)\s*/g," ").split(":")[0].trim();
+function parseDate(s){const m=/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/.exec(s||"");return m?new Date(+m[1],+m[2]-1,+m[3]):null}
+
+function toBooks(rows){
+  if(!rows.length||!("Title" in rows[0])||!("Exclusive Shelf" in rows[0])) throw new Error("This doesn't look like a Goodreads export. In Goodreads, go to My Books, then Import and export, then Export library.");
+  return rows.map(r=>{
+    const id=r["Book Id"]||norm(r.Title+r.Author);
+    return {
+      id, title:baseTitle(r.Title), fullTitle:r.Title, series:(/\(([^)]+)\)/.exec(r.Title)||[])[1]||"",
+      author:(r.Author||"").replace(/\s+/g," "), isbn:clean(r.ISBN13)||clean(r.ISBN),
+      rating:parseFloat(r["My Rating"])||0, pages:parseInt(r["Number of Pages"])||0,
+      published:parseInt(r["Original Publication Year"])||parseInt(r["Year Published"])||0,
+      read:parseDate(r["Date Read"]), added:parseDate(r["Date Added"]),
+      shelf:r["Exclusive Shelf"], shelves:(r.Bookshelves||"").toLowerCase(), genre:null, genreSource:"",
+      publisher:r.Publisher||"", binding:r.Binding||"", review:(r["My Review"]||"").replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]+>/g,""), readCount:parseInt(r["Read Count"])||0
+    };
+  });
+}
+
+const tok=t=>" "+t.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";
+function classify(terms){
+  const text=terms.map(tok);
+  let best=null,bestScore=0,anyFiction=false;
+  RULES.forEach(([g,kws],pri)=>{
+    let s=0;
+    text.forEach((t,i)=>{ if(t.includes(" fiction "))anyFiction=true;
+      if(kws.some(k=>{const kk=tok(k).trim();return t.includes(" "+kk+" ")||t.includes(" "+kk+"s ")})) s+=1-Math.min(i,40)*.005 });
+    s -= pri*0.01;
+    if(s>bestScore){bestScore=s;best=g}
+  });
+  return bestScore>0?best:(anyFiction?"literary":null);
+}
+// Older general fiction reads as a classic
+const settle=(g,b)=>g&&b.published&&b.published<1950&&["literary","romance","historical"].includes(g)?"classics":g;
+
+const OL="https://openlibrary.org";
+async function olFetch(url){
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),12000);
+  try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw new Error(r.status);return await r.json()}
+  finally{clearTimeout(t)}
+}
+const lookupKey=b=>b.isbn||norm(b.title+" "+b.author);
+function applyLookup(b,info){
+  if(!info)return;
+  b.olWork=info.work||""; b.coverId=info.cover||0;
+  if(info.first&&!b.firstLine)b.firstLine=info.first;
+}
+// Open Library: ISBN first, then title + author. Result is cached per book in localStorage.
+async function lookup(b){
+  const key=lookupKey(b);
+  if(lookupCache[key]!==undefined) return lookupCache[key];
+  if(olReachable===false) return undefined;
+  const F="&fields=key,subject,cover_i,first_sentence&limit=1";
+  let doc=null;
+  try{
+    if(b.isbn){const j=await olFetch(OL+"/search.json?isbn="+encodeURIComponent(b.isbn)+F); doc=j.docs&&j.docs[0]}
+    if(!doc||!(doc.subject||[]).length){
+      const j=await olFetch(OL+"/search.json?title="+encodeURIComponent(b.title)+"&author="+encodeURIComponent(b.author)+F);
+      const d2=j.docs&&j.docs[0]; if(d2&&(!doc||(d2.subject||[]).length))doc=Object.assign({},d2,doc&&doc.cover_i?{cover_i:doc.cover_i}:{});
+    }
+    olReachable=true;
+  }catch(e){ if(olReachable===null) olReachable=false; return undefined }
+  const info=doc?{genre:settle(classify((doc.subject||[]).slice(0,80)),b),work:doc.key||"",cover:doc.cover_i||0,first:(doc.first_sentence||[])[0]||""}:{genre:null,work:"",cover:0,first:""};
+  lookupCache[key]=info; store.set(CACHE_KEY,lookupCache);
+  return info;
+}
+async function description(b){
+  if(!b.olWork)return "";
+  const k="d:"+b.olWork;
+  if(descCache[k]!==undefined)return descCache[k];
+  try{
+    const j=await olFetch(OL+b.olWork+".json");
+    let d=j.description; if(d&&typeof d==="object")d=d.value; d=(d||"").replace(/\r/g,"");
+    d=d.split(/\n\s*-{3,}|\n\s*\(\[source\]|\n\s*\*\*\*|\n\s*Contains:/)[0].replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").trim();
+    descCache[k]=d; store.set(DESC_KEY,descCache); return d;
+  }catch(e){return ""}
+}
+
+function guessOffline(b){
+  const h=OFFLINE_HINTS[norm(b.title)];
+  if(h) return [h,"known title"];
+  const s=b.shelves?classify(b.shelves.replace(/-/g," ").split(/,\s*/)):null;
+  if(s) return [s,"your shelves"];
+  return ["other","no match"];
+}
+
+async function resolveGenres(list){
+  list.forEach(b=>{ if(overrides[b.id]){b.genre=overrides[b.id];b.genreSource="your pick"} });
+  // the selected year, reading now and to-read first, then the rest of the library
+  const first=b=>(b.read&&b.read.getFullYear()===year)||b.shelf!=="read";
+  const queue=[...list.filter(first),...list.filter(b=>!first(b))];
+  const total=queue.length; let done=0, dirty=false, timer=null;
+  const flush=()=>{timer=null;if(dirty){dirty=false;render()}};
+  const status=()=>{ if(olReachable!==false) setStatus(`Looking up books on Open Library… ${done} of ${total}`,true) };
+  status();
+  async function one(b){
+    const shelfG=b.shelves?classify(b.shelves.replace(/-/g," ").split(/,\s*/)):null;
+    const info=await lookup(b);
+    applyLookup(b,info);
+    if(!overrides[b.id]){
+      const g=info&&info.genre;
+      if(g){b.genre=g;b.genreSource="Open Library"}
+      else if(shelfG){b.genre=shelfG;b.genreSource="your shelves"}
+      else {const [o,src]=guessOffline(b);b.genre=o;b.genreSource=src}
+    }
+    done++; status();
+    dirty=true; if(!timer)timer=setTimeout(flush,700);
+  }
+  async function worker(){ while(queue.length) await one(queue.shift()) }
+  // probe one first so a blocked network fails fast
+  if(queue.length) await one(queue.shift());
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  if(timer){clearTimeout(timer);timer=null}
+}
+
+
+// ---- genre scenes: layered silhouettes tinted in the genre colour ----
+let lastScene="";
+const ART={};
+function buildArt(){
+  let css="";
+  for(const [g,G] of Object.entries(GENRES)){
+    ART[g]="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(sceneSVG(g,G.color,true));
+    css+=`.art-${g}{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35)),url("${ART[g]}");background-size:100% 100%,auto 100%;background-repeat:no-repeat}`;
+  }
+  const st=document.createElement("style");st.textContent=css;document.head.appendChild(st);
+}
+const hashPos=id=>{let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))>>>0;return h%100};
+function hexRgb(h){h=h.replace("#","");return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
+function mix(a,b,t){const A=hexRgb(a),B=hexRgb(b);return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("")}
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646}}
+function ridge(r,y,amp,step,jag){let d=`M0 600 L0 ${y}`;for(let x=0;x<=1600;x+=step){const yy=y-amp*(.5+.5*Math.sin(x/170+r()*2))-r()*jag;d+=` L${x} ${yy.toFixed(1)}`}return d+" L1600 600Z"}
+function hills(r,y,amp){let d=`M0 600 L0 ${y}`;const k=r()*6;for(let x=0;x<=1600;x+=20){d+=` L${x} ${(y-amp*Math.sin(x/260+k)-amp*.4*Math.sin(x/97+k*2)).toFixed(1)}`}return d+" L1600 600Z"}
+function starField(r,n,maxY){let o="";for(let i=0;i<n;i++)o+=`<circle cx="${(r()*1600).toFixed(0)}" cy="${(r()*maxY).toFixed(0)}" r="${(r()*1.4+.3).toFixed(1)}" fill="#fff" opacity="${(r()*.7+.2).toFixed(2)}"/>`;return o}
+function sceneSVG(g,c,light){
+  const r=rng(7+g.length*13), sky1=light?mix(c,"#05070a",.5):mix(c,"#05070a",.78), sky2=light?mix(c,"#ffffff",.08):mix(c,"#0b0e12",.35), L1=mix(c,"#06080b",.55), L2=mix(c,"#06080b",.72), L3=mix(c,"#06080b",.86), glow=mix(c,"#ffffff",.55);
+  let el="";
+  if(g==="scifi"){el=starField(r,220,520)+`<circle cx="1220" cy="170" r="120" fill="${glow}" opacity=".9"/><circle cx="1185" cy="150" r="120" fill="${sky1}" opacity=".55"/><ellipse cx="1220" cy="170" rx="210" ry="34" fill="none" stroke="${glow}" stroke-width="5" opacity=".6" transform="rotate(-14 1220 170)"/><circle cx="960" cy="60" r="16" fill="${glow}" opacity=".7"/>`+`<path d="${ridge(r,430,80,40,60)}" fill="${L1}"/><path d="${ridge(r,500,50,30,40)}" fill="${L2}"/><path d="${ridge(r,560,30,25,20)}" fill="${L3}"/>`}
+  else if(g==="fantasy"){el=starField(r,140,380)+`<circle cx="1260" cy="140" r="70" fill="${glow}"/><circle cx="1260" cy="140" r="140" fill="${glow}" opacity=".12"/>`+`<path d="${ridge(r,360,160,55,90)}" fill="${L1}"/>`+`<g fill="${L2}"><path d="${hills(r,470,40)}"/><path d="M420 400h16v-50l14-20 14 20v50h20v-90l16-26 16 26v90h20v-40l12-18 12 18v40h16v80H420z"/></g><path d="${hills(r,545,25)}" fill="${L3}"/>`}
+  else if(g==="western"){el=`<circle cx="800" cy="430" r="190" fill="${glow}" opacity=".85"/><circle cx="800" cy="430" r="300" fill="${glow}" opacity=".12"/>`+`<path d="M0 600V430h120l30-90h210l30 90h260l20-60h150l20 60h300l40-120h240l40 120h130V600Z" fill="${L1}"/><path d="${hills(r,520,18)}" fill="${L2}"/><path d="M1240 560v-110a14 14 0 0 1 28 0v40h18v-30a12 12 0 0 1 24 0v50a14 14 0 0 1-14 14h-28v36zM300 560v-80a10 10 0 0 1 20 0v28h12v-18a9 9 0 0 1 18 0v34a10 10 0 0 1-10 10h-20v26z" fill="${L3}"/><path d="M0 600V560h1600v40z" fill="${L3}"/>`}
+  else if(g==="horror"){el=`<circle cx="1180" cy="150" r="95" fill="${glow}" opacity=".9"/><circle cx="1180" cy="150" r="190" fill="${glow}" opacity=".1"/>`+`<path d="${hills(r,470,35)}" fill="${L1}"/>`;let t="";for(let i=0;i<9;i++){const x=80+i*190+r()*80,h=180+r()*140,y=560;t+=`<path d="M${x} ${y}V${y-h}M${x} ${y-h*.55}l-${40+r()*30}-${50+r()*30}M${x} ${y-h*.7}l${40+r()*30}-${40+r()*30}M${x} ${y-h*.85}l-${20+r()*20}-${30+r()*20}" stroke="${L3}" stroke-width="${6+r()*6}" stroke-linecap="round" fill="none"/>`}el+=t+`<rect y="430" width="1600" height="80" fill="${glow}" opacity=".08"/><path d="${hills(r,560,10)}" fill="${L3}"/>`}
+  else if(g==="mystery"){el=`<circle cx="300" cy="120" r="50" fill="${glow}" opacity=".6"/>`;let b1="",b2="",w="";let x=0;while(x<1600){const bw=60+r()*90,bh=120+r()*240;b1+=`<rect x="${x.toFixed(0)}" y="${(560-bh).toFixed(0)}" width="${bw.toFixed(0)}" height="${bh.toFixed(0)}"/>`;for(let wy=560-bh+16;wy<540;wy+=22)for(let wx=x+10;wx<x+bw-14;wx+=18)if(r()<.12)w+=`<rect x="${wx.toFixed(0)}" y="${wy.toFixed(0)}" width="7" height="10"/>`;x+=bw+4}x=-40;while(x<1600){const bw=80+r()*120,bh=60+r()*120;b2+=`<rect x="${x.toFixed(0)}" y="${(600-bh).toFixed(0)}" width="${bw.toFixed(0)}" height="${bh.toFixed(0)}"/>`;x+=bw+2}let rain="";for(let i=0;i<160;i++){const rx=r()*1700,ry=r()*600;rain+=`M${rx.toFixed(0)} ${ry.toFixed(0)}l-8 26`}el+=`<g fill="${L1}">${b1}</g><g fill="${glow}" opacity=".55">${w}</g><g fill="${L3}">${b2}</g><path d="${rain}" stroke="#fff" stroke-width="1.2" opacity=".18"/>`}
+  else if(g==="romance"){let b="";for(let i=0;i<40;i++)b+=`<circle cx="${(r()*1600).toFixed(0)}" cy="${(r()*480).toFixed(0)}" r="${(10+r()*60).toFixed(0)}" fill="${glow}" opacity="${(.05+r()*.18).toFixed(2)}"/>`;el=b+`<path d="${hills(r,470,40)}" fill="${L1}"/><path d="${hills(r,530,30)}" fill="${L2}"/><path d="${hills(r,575,15)}" fill="${L3}"/>`}
+  else if(g==="classics"){el=`<circle cx="1250" cy="180" r="80" fill="${glow}" opacity=".7"/><path d="${hills(r,500,25)}" fill="${L1}"/>`;let cols="";for(let i=0;i<8;i++)cols+=`<rect x="${560+i*62}" y="330" width="30" height="170"/>`;el+=`<g fill="${L2}"><path d="M530 330h520l-260-80z"/><rect x="530" y="322" width="520" height="14"/>${cols}<rect x="510" y="500" width="560" height="20"/></g><path d="${hills(r,570,12)}" fill="${L3}"/>`}
+  else if(g==="historical"){el=`<circle cx="1300" cy="160" r="70" fill="${glow}" opacity=".7"/><path d="${hills(r,460,30)}" fill="${L1}"/><g fill="${L2}"><path d="M200 560V420h80v-40a40 40 0 0 1 80 0v40h80v140zM700 560V380h40v-60h20v-30h10v30h20v60h40v180zM1000 560V440h60l30-50 30 50h60v120z"/><path d="M0 600V540h1600v60z"/></g><path d="${hills(r,585,8)}" fill="${L3}"/>`}
+  else if(g==="nonfiction"){let c2="";for(let i=0;i<14;i++)c2+=`<path d="${hills(r,120+i*34,20+r()*30).replace(" L1600 600Z","").replace("M0 600 L","M")}" fill="none" stroke="${glow}" stroke-width="1.5" opacity="${(.12+i*.02).toFixed(2)}"/>`;el=c2+`<path d="${hills(r,560,15)}" fill="${L3}"/>`}
+  else if(g==="literary"){let birds="";for(let i=0;i<14;i++){const x=200+r()*1200,y=60+r()*220,s=6+r()*10;birds+=`M${x.toFixed(0)} ${y.toFixed(0)}q${s} -${s} ${s*2} 0q${s} -${s} ${s*2} 0`}el=`<circle cx="400" cy="200" r="90" fill="${glow}" opacity=".55"/><path d="${birds}" stroke="${glow}" stroke-width="2.5" fill="none" opacity=".7"/><path d="${hills(r,440,45)}" fill="${L1}"/><path d="${hills(r,510,30)}" fill="${L2}"/><path d="${hills(r,570,15)}" fill="${L3}"/>`}
+  else {el=starField(r,60,300)+`<path d="${hills(r,450,40)}" fill="${L1}"/><path d="${hills(r,530,25)}" fill="${L2}"/>`}
+  return `<svg viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sk${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky1}"/><stop offset="1" stop-color="${sky2}"/></linearGradient><linearGradient id="vg${g}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset=".55" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="600" fill="url(#sk${g})"/>${el}${light?"":`<rect width="1600" height="600" fill="url(#vg${g})"/>`}</svg>`;
+}
+
+function setStatus(t,busy){document.getElementById("statusText").textContent=t;document.getElementById("dot").classList.toggle("busy",!!busy)}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const stars=r=>r? "★".repeat(Math.floor(r))+(r%1?"½":"") : "";
+const fmt=n=>n.toLocaleString("en");
+
+function yearBooks(){return books.filter(b=>b.shelf==="read"&&b.read&&b.read.getFullYear()===year).sort((a,b)=>a.read-b.read)}
+
+function render(){
+  const ys=yearBooks();
+  document.getElementById("yrTitle").textContent=year;
+  const counts={};ys.forEach(b=>counts[b.genre]=(counts[b.genre]||0)+1);
+  const order=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const top=order[0];
+  const tint=top?GENRES[top].color:"#2f6f62";document.documentElement.style.setProperty("--hero-tint",tint);document.documentElement.style.setProperty("--hero-wash",tint+"29");
+
+  // shelf
+  const shelf=document.getElementById("shelf");
+  if(!ys.length){shelf.innerHTML=`<div class="empty" style="width:100%">No books marked as read in ${year}. Try another year.</div>`}
+  else shelf.innerHTML=ys.map(b=>{
+    const p=Math.max(80,Math.min(900,b.pages||250));
+    const h=Math.round(150+ (p-80)/(900-80)*130), w=(26+(p-80)/(900-80)*30).toFixed(1);
+    const G=GENRES[b.genre]||GENRES.other;
+    return `<div class="spine art-${b.genre}${b.rating>=5?" five":""}" tabindex="0" role="button" data-book="${esc(b.id)}" style="height:${h}px;flex:${w} 1 0;background-color:${G.color};background-position:0 0,${hashPos(b.id)}% 100%"
+      title="${esc(b.title)} by ${esc(b.author)}\n${G.name} · ${b.pages||"?"} pages · finished ${b.read.toLocaleDateString("en",{day:"numeric",month:"short"})}${b.rating?" · "+stars(b.rating):""}"
+      aria-label="${esc(b.title)}, ${G.name}"><span>${esc(b.title.replace(/\u2019/g,"'"))}</span>${b.rating>=5?'<em class="stars">★</em>':""}</div>`}).join("");
+  document.getElementById("legend").innerHTML=order.map(g=>`<span><i class="pat-${g}" style="background-color:${GENRES[g].color}"></i>${GENRES[g].name}</span>`).join("");
+
+  // tiles
+  const pages=ys.reduce((s,b)=>s+b.pages,0);
+  const rated=ys.filter(b=>b.rating>0);
+  const avgR=rated.length?rated.reduce((s,b)=>s+b.rating,0)/rated.length:0;
+  const now=new Date(); const isCur=year===now.getFullYear();
+  const dayN=isCur?Math.max(1,Math.ceil((now-new Date(year,0,1))/864e5)):(year%4?365:366);
+  document.getElementById("tiles").innerHTML=[
+    ["Books read",fmt(ys.length),ys.length?`About one every ${Math.round(dayN/ys.length)} days`:"—"],
+    ["Pages turned",fmt(pages),`${Math.round(pages/dayN)} pages a day on average`],
+    ["Average rating",avgR?avgR.toFixed(2):"—",`${stars(Math.round(avgR*2)/2)||"No ratings"} across ${rated.length} rated`],
+    ["Average length",ys.length?fmt(Math.round(pages/ys.length)):"—","pages per book"]
+  ].map(([l,v,h])=>`<div class="tile"><div class="eyebrow">${l}</div><div class="v">${v}</div></div>`).join("");
+
+  // months
+  const byM=MONTHS.map((_,i)=>ys.filter(b=>b.read.getMonth()===i));
+  const maxM=Math.max(1,...byM.map(m=>m.length));
+  document.getElementById("months").innerHTML=byM.map(m=>{
+    const bh=`calc((100% - 22px) / ${maxM} - 2px)`;
+    return `<div class="month"><div class="cnt">${m.length||""}</div>${m.slice().reverse().map(b=>`<div class="blk art-${b.genre}" data-book="${esc(b.id)}" title="${esc(b.title)}" style="height:${bh};background-position:0 0,${hashPos(b.id)}% 100%;background-color:${(GENRES[b.genre]||GENRES.other).color}"></div>`).join("")}</div>`}).join("");
+  document.getElementById("mlabels").innerHTML=byM.map((m,i)=>{const p=m.reduce((s,b)=>s+b.pages,0);return `<div>${MONTHS[i]}<span class="pg">${p?fmt(p):"·"}</span></div>`}).join("");
+
+  // calendar
+  const fin={};ys.forEach(b=>{const k=b.read.toDateString();(fin[k]=fin[k]||[]).push(b)});
+  const jan1=new Date(year,0,1), off=(jan1.getDay()+6)%7, ndays=Math.round((new Date(year+1,0,1)-jan1)/864e5);
+  const weeks=Math.ceil((off+ndays)/7); let cal="";
+  for(let w=0;w<weeks;w++){
+    const mStart=new Date(year,0,1+w*7-off+6); const showM=mStart.getFullYear()===year&&(w===0||mStart.getDate()<=7);
+    cal+=`<span class="ml">${showM?MONTHS[mStart.getMonth()]:""}</span>`;
+    for(let d=0;d<7;d++){
+      const i=w*7+d-off; if(i<0||i>=ndays){cal+='<span class="d out"></span>';continue}
+      const dt=new Date(year,0,1+i), bs=fin[dt.toDateString()], ds=dt.toLocaleDateString("en",{day:"numeric",month:"short"});
+      const cur=ys.find(x=>x.read>=dt);
+      if(cur){const G=GENRES[cur.genre]||GENRES.other;cal+=`<span class="d${bs?" on":""} pat-${cur.genre}" style="background-color:${G.color}" title="${ds}: ${esc(cur.title)}${bs?" (finished)":""}"></span>`}
+      else cal+=`<span class="d" title="${ds}"></span>`;
+    }
+  }
+  document.getElementById("cal").innerHTML=cal;
+
+  // genres
+  document.getElementById("genres").innerHTML=order.map(g=>{const pc=counts[g]/ys.length*100;return `<div class="bar"><span>${GENRES[g].name}</span><div class="track"><div class="fill pat-${g}" style="width:${pc}%;background-color:${GENRES[g].color}"></div></div><span class="n">${counts[g]} · ${Math.round(pc)}%</span></div>`}).join("")||'<div class="hint">Nothing yet.</div>';
+
+  // highlights
+  const withP=ys.filter(b=>b.pages), withY=ys.filter(b=>b.published);
+  const longest=withP.slice().sort((a,b)=>b.pages-a.pages)[0], shortest=withP.slice().sort((a,b)=>a.pages-b.pages)[0];
+  const oldest=withY.slice().sort((a,b)=>a.published-b.published)[0], newest=withY.slice().sort((a,b)=>b.published-a.published)[0];
+  const busiest=byM.map((m,i)=>[i,m.length,m.reduce((s,b)=>s+b.pages,0)]).sort((a,b)=>b[2]-a[2])[0];
+  const fives=ys.filter(b=>b.rating>=5).length;
+  const series={};ys.forEach(b=>{if(b.series){const s=b.series.replace(/,?\s*#[\d.]+$/,"").trim();series[s]=(series[s]||0)+1}});
+  const topSeries=Object.entries(series).sort((a,b)=>b[1]-a[1])[0];
+  const H=[];
+  if(longest)H.push(["Longest",longest.title,`${fmt(longest.pages)} pages`]);
+  if(shortest)H.push(["Shortest",shortest.title,`${fmt(shortest.pages)} pages`]);
+  if(oldest)H.push(["Oldest",oldest.title,`first published ${oldest.published}`]);
+  if(newest)H.push(["Newest",newest.title,`first published ${newest.published}`]);
+  if(busiest&&busiest[2])H.push(["Biggest month",new Date(year,busiest[0]).toLocaleString("en",{month:"long"}),`${busiest[1]} books, ${fmt(busiest[2])} pages`]);
+  if(topSeries&&topSeries[1]>1)H.push(["Series binge",topSeries[0],`${topSeries[1]} books this year`]);
+  else if(top)H.push(["Top genre",GENRES[top].name,`${counts[top]} of ${ys.length} books`]);
+  H.push(["Five stars",String(fives),fives===1?"book got full marks":"books got full marks"]);
+  document.getElementById("highlights").innerHTML=H.map(([l,v,s])=>`<div><div class="eyebrow">${l}</div><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join("");
+
+  // ratings
+  const bins=[1,1.5,2,2.5,3,3.5,4,4.5,5];const hasHalf=rated.some(b=>b.rating%1);
+  const use=hasHalf?bins:[1,2,3,4,5];
+  const hc=use.map(v=>rated.filter(b=>(hasHalf?Math.round(b.rating*2)/2:Math.round(b.rating))===v).length);
+  const hm=Math.max(1,...hc);
+  
+  document.getElementById("ratings").innerHTML=use.map((v,i)=>`<div class="col"><span class="c">${hc[i]||""}</span><div class="b" style="height:calc(${hc[i]/hm} * (100% - 36px))"></div><span class="lab">${v}★</span></div>`).join("");
+
+  // authors
+  const au={};ys.forEach(b=>{au[b.author]=au[b.author]||{n:0,p:0};au[b.author].n++;au[b.author].p+=b.pages});
+  const ta=Object.entries(au).sort((a,b)=>b[1].n-a[1].n||b[1].p-a[1].p).slice(0,5);const am=Math.max(1,...ta.map(a=>a[1].n));
+  document.getElementById("authors").innerHTML=ta.map(([a,v])=>`<div class="bar" style="grid-template-columns:minmax(0,1fr) 28px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a)}<div class="track" style="margin-top:4px;height:6px"><div class="fill" style="width:${v.n/am*100}%;background:var(--accent)"></div></div></span><span class="n">${v.n}</span></div>`).join("");
+
+  // decades
+  const dc={};withY.forEach(b=>{const d=Math.floor(b.published/10)*10;dc[d]=(dc[d]||0)+1});
+  const dk=Object.keys(dc).map(Number).sort((a,b)=>a-b);const dm=Math.max(1,...Object.values(dc));
+  document.getElementById("decades").innerHTML=dk.map(d=>`<div class="bar" style="grid-template-columns:64px minmax(0,1fr) 28px"><span class="num" style="font-size:13px">${d}s</span><div class="track"><div class="fill" style="width:${dc[d]/dm*100}%;background:var(--accent)"></div></div><span class="n">${dc[d]}</span></div>`).join("")||'<div class="hint">No publication years in this export.</div>';
+
+  // up next
+  const cur=books.filter(b=>b.shelf==="currently-reading"), tbr=books.filter(b=>b.shelf==="to-read");
+  const tc={};tbr.forEach(b=>tc[b.genre]=(tc[b.genre]||0)+1);
+  const tk=Object.keys(tc).sort((a,b)=>tc[b]-tc[a]);
+  void `${cur.length?`Reading now: ${cur.map(b=>b.title).join(", ")}. `:""}${tbr.length} on your to-read shelf, ${fmt(tbr.reduce((s,b)=>s+b.pages,0))} pages, by genre:`;
+  document.getElementById("next").innerHTML=tk.map(g=>`<div class="bar"><span>${GENRES[g].name}</span><div class="track"><div class="fill pat-${g}" style="width:${tc[g]/tbr.length*100}%;background-color:${GENRES[g].color}"></div></div><span class="n">${tc[g]}</span></div>`).join("");
+
+  // table
+  const opts=Object.entries(GENRES).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join("");
+  document.getElementById("rows").innerHTML=ys.slice().reverse().map(b=>`<tr>
+    <td class="num" style="white-space:nowrap;font-size:13px">${b.read.toLocaleDateString("en",{day:"numeric",month:"short"})}</td>
+    <td class="t"><span class="tl" data-book="${esc(b.id)}" role="button" tabindex="0">${esc(b.title)}</span><span class="au">${esc(b.author)}</span></td>
+    <td style="white-space:nowrap">${stars(b.rating)||'<span style="color:var(--muted)">—</span>'}</td>
+    <td class="num">${b.pages||"—"}</td>
+    <td style="white-space:nowrap"><span class="sw pat-${b.genre}" style="background-color:${(GENRES[b.genre]||GENRES.other).color}"></span><select id="g-${esc(b.id)}" data-id="${esc(b.id)}" aria-label="Genre for ${esc(b.title)}">${opts}</select></td></tr>`).join("");
+  ys.forEach(b=>{const s=document.getElementById("g-"+b.id);if(s)s.value=b.genre});
+}
+
+document.getElementById("rows").addEventListener("change",e=>{
+  const id=e.target.dataset.id;if(!id)return;
+  overrides[id]=e.target.value;store.set("yots.overrides",overrides);
+  const b=books.find(x=>x.id===id);b.genre=e.target.value;b.genreSource="your pick";render();
+});
+document.getElementById("year").addEventListener("change",e=>{year=+e.target.value;render()});
+document.getElementById("fileBtn").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();document.getElementById("file").click()}});
+document.getElementById("file").addEventListener("change",e=>{const f=e.target.files[0];if(f)readFile(f)});
+document.addEventListener("dragover",e=>{e.preventDefault();document.body.classList.add("drop")});
+document.addEventListener("dragleave",e=>{if(!e.relatedTarget)document.body.classList.remove("drop")});
+document.addEventListener("drop",e=>{e.preventDefault();document.body.classList.remove("drop");const f=e.dataTransfer.files[0];if(f)readFile(f)});
+
+function readFile(f){const r=new FileReader();r.onload=()=>load(r.result,`your file ${f.name}`);r.readAsText(f)}
+
+async function load(text,label,isSample){
+  try{ books=toBooks(parseCSV(text.replace(/^﻿/,""))) }
+  catch(err){ setStatus(err.message,false); return }
+  sourceLabel=label;
+  const years=[...new Set(books.filter(b=>b.shelf==="read"&&b.read).map(b=>b.read.getFullYear()))].sort((a,b)=>b-a);
+  const thisY=new Date().getFullYear();
+  year=years.includes(thisY)?thisY:(years[0]||thisY);
+  document.getElementById("year").innerHTML=(years.length?years:[thisY]).map(y=>`<option value="${y}">${y}</option>`).join("");
+  document.getElementById("year").value=year;
+  // instant first paint with offline guesses, then refine
+  books.forEach(b=>{if(overrides[b.id]){b.genre=overrides[b.id];b.genreSource="your pick"}else{const [g,s]=guessOffline(b);b.genre=g;b.genreSource=s}});
+  render();
+  await resolveGenres(books);
+  render();
+  const n=books.length, src="";
+  setStatus(isSample?"Sample library":`${n} books loaded`,false);
+}
+
+// share image
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+async function makeImage(){
+  await document.fonts.ready;
+  const ys=yearBooks(), W=1080,Hh=1350, cv=document.createElement("canvas"); cv.width=W; cv.height=Hh; const c=cv.getContext("2d");
+  const counts={};ys.forEach(b=>counts[b.genre]=(counts[b.genre]||0)+1);
+  const order=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]); const tint=order[0]?GENRES[order[0]].color:"#2f6f62";
+  c.fillStyle="#f3f4f1";c.fillRect(0,0,W,Hh);
+  const g=c.createLinearGradient(0,0,0,760);g.addColorStop(0,tint+"40");g.addColorStop(1,tint+"00");c.fillStyle=g;c.fillRect(0,0,W,760);
+  c.fillStyle="#5d666c";c.font="600 24px 'Instrument Sans', sans-serif";c.fillText("GOODREADS READING YEAR",72,110);
+  c.fillStyle="#1b2125";c.font="800 92px 'Bricolage Grotesque', sans-serif";c.fillText("My",72,210);
+  const mw=c.measureText("My ").width;c.fillStyle=tint;c.fillText(String(year),72+mw,210);
+  c.fillStyle="#1b2125";c.fillText("on the shelf",72,305);
+  const imgs={};for(const gk of order){try{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=ART[gk]});imgs[gk]=im}catch(e){}}
+  // shelf
+  const base=740, avail=W-144; const ws=ys.map(b=>{const p=Math.max(80,Math.min(900,b.pages||250));return {b,p,w:34+(p-80)/820*40,h:220+(p-80)/820*150}});
+  const tot=ws.reduce((s,x)=>s+x.w+5,0); const k=avail/tot; let x=72;
+  ws.forEach(({b,w,h})=>{w*=k;const G=GENRES[b.genre]||GENRES.other;c.fillStyle=G.color;roundRect(c,x,base-h,w,h,4);c.fill();
+    const im=imgs[b.genre];if(im){c.save();roundRect(c,x,base-h,w,h,4);c.clip();const sw=1600*h/600, sx=(sw-w)*hashPos(b.id)/100;c.drawImage(im,x-sx,base-h,sw,h);const sh=c.createLinearGradient(0,base-h,0,base);sh.addColorStop(0,"rgba(0,0,0,.05)");sh.addColorStop(1,"rgba(0,0,0,.35)");c.fillStyle=sh;c.fillRect(x,base-h,w,h);c.restore()}
+    c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x+w-4,base-h+2,4,h-2);
+    if(w>20){c.save();c.translate(x+w/2+6*Math.min(1,w/34),base-14);c.rotate(-Math.PI/2);c.fillStyle="#fff";c.font=`700 ${Math.round(Math.min(18,w*.5))}px 'Bricolage Grotesque', sans-serif`;
+      let t=b.title;while(c.measureText(t).width>h-28&&t.length>3)t=t.slice(0,-2);if(t!==b.title)t=t.trim()+"…";c.fillText(t,0,0);c.restore()}
+    x+=w+5*k});
+  c.fillStyle="#c9b89a";c.fillRect(56,base,W-112,16);
+  // legend
+  let lx=72,ly=790;c.font="500 22px 'Instrument Sans', sans-serif";order.slice(0,8).forEach(gk=>{const n=GENRES[gk].name+"  "+counts[gk];const nw=c.measureText(n).width+28;if(lx+nw>W-72){lx=72;ly+=34}c.fillStyle=GENRES[gk].color;roundRect(c,lx,ly,18,18,4);c.fill();c.fillStyle="#5d666c";c.fillText(n,lx+28,ly+16);lx+=nw+32});
+  // stats
+  const pages=ys.reduce((s,b)=>s+b.pages,0), rated=ys.filter(b=>b.rating), avg=rated.length?(rated.reduce((s,b)=>s+b.rating,0)/rated.length).toFixed(2):"–";
+  const st=[["Books",fmt(ys.length)],["Pages",fmt(pages)],["Avg rating",avg],["Avg length",ys.length?fmt(Math.round(pages/ys.length)):"–"]];
+  st.forEach(([l,v],i)=>{const cx=72+(i%2)*480, cy=880+Math.floor(i/2)*190;c.fillStyle="#ffffff";roundRect(c,cx,cy,456,166,18);c.fill();c.strokeStyle="#dfe2dc";c.lineWidth=2;c.stroke();
+    c.fillStyle="#5d666c";c.font="600 22px 'Instrument Sans', sans-serif";c.fillText(l.toUpperCase(),cx+28,cy+50);c.fillStyle="#1b2125";c.font="800 72px 'Bricolage Grotesque', sans-serif";c.fillText(v,cx+28,cy+130)});
+  const fav=ys.filter(b=>b.rating>=5).map(b=>b.title);
+  c.fillStyle="#5d666c";c.font="500 22px 'Instrument Sans', sans-serif";
+  let line=fav.length?"Five stars: "+fav.join(", "):"";while(c.measureText(line).width>W-144&&line.length>10)line=line.slice(0,-2);if(fav.length&&line!=="Five stars: "+fav.join(", "))line=line.trim()+"…";
+  c.fillText(line,72,1290);
+  return new Promise(r=>cv.toBlob(r,"image/png"));
+}
+(()=>{
+  const btn=document.getElementById("saveImg");
+  btn.hidden=false;
+  btn.addEventListener("click",async()=>{
+    btn.disabled=true;const old=btn.textContent;btn.textContent="Making image…";
+    try{const blob=await makeImage();const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`my-${year}-in-books.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+    catch(e){setStatus("The image couldn't be saved.",false)}
+    btn.disabled=false;btn.textContent=old;
+  });
+})();
+
+// book info popover
+const pop=document.getElementById("pop");
+function openPop(id,anchor){
+  const b=books.find(x=>String(x.id)===id);if(!b)return;
+  const G=GENRES[b.genre]||GENRES.other;
+  const f=[["Rating",b.rating?stars(b.rating):"Not rated"],["Pages",b.pages?fmt(b.pages):"—"],["Finished",b.read?b.read.toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"}):"—"],["First published",b.published||"—"],["Genre",G.name],["Format",b.binding||"—"]];
+  if(b.publisher)f.push(["Publisher",b.publisher]);
+  if(b.series)f.push(["Series",b.series]);
+  if(b.readCount>1)f.push(["Times read",b.readCount]);
+  pop.innerHTML=`<div class="ph art-${b.genre}" style="background-color:${G.color}">${coverUrl(b)?`<img alt="" src="${coverUrl(b)}" onerror="this.remove()">`:""}<div><h3>${esc(b.title)}</h3><div class="by">${esc(b.author)}</div></div><button class="x" id="popX" aria-label="Close">×</button></div>
+    <dl>${f.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl><div class="ds" id="popDesc" hidden></div>${b.review?`<div class="rv"><dt>Your review</dt>${esc(b.review)}</div>`:""}`;
+  pop.dataset.id=b.id;
+  pop.hidden=false;
+  const r=anchor.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight, vw=document.documentElement.clientWidth;
+  let left=r.left+r.width/2-pw/2+scrollX; left=Math.max(16+scrollX,Math.min(left,scrollX+vw-pw-16));
+  let top=r.bottom+10+scrollY; if(r.bottom+ph+20>innerHeight&&r.top-ph-10>0) top=r.top-ph-10+scrollY;
+  pop.style.left=left+"px";pop.style.top=top+"px";
+  document.getElementById("popX").onclick=closePop; document.getElementById("popX").focus({preventScroll:true});
+  const showDesc=d=>{const el=document.getElementById("popDesc");if(!el||pop.hidden||pop.dataset.id!==String(b.id))return;d=d||b.firstLine;if(!d)return;
+    el.innerHTML=`<dt>About</dt><p>${esc(d)}</p>`;el.hidden=false;
+    const r2=anchor.getBoundingClientRect();if(parseFloat(pop.style.top)<r2.top+scrollY){pop.style.top=Math.max(scrollY+8,r2.top-pop.offsetHeight-10+scrollY)+"px"}};
+  if(b.olWork) description(b).then(showDesc); else showDesc("");
+}
+const coverUrl=b=>b.coverId?`https://covers.openlibrary.org/b/id/${b.coverId}-M.jpg`:b.isbn?`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(b.isbn)}-M.jpg?default=false`:"";
+function closePop(){pop.hidden=true}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-book]");if(t){e.stopPropagation();openPop(t.dataset.book,t);return}if(!pop.hidden&&!pop.contains(e.target))closePop()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closePop();const t=e.target.closest&&e.target.closest("[data-book]");if(t&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openPop(t.dataset.book,t)}});
+addEventListener("resize",closePop);
+
+buildArt();
+load(SAMPLE_CSV,"a sample library",true);
+</script>
+
+</body></html>
