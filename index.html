@@ -94,6 +94,8 @@ button:focus-visible,select:focus-visible,.btn:focus-visible,.spine:focus-visibl
 .book{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;min-width:18px}
 .book .spine{width:100%}
 .rt{display:block;text-align:center;font-family:var(--f-display);font-weight:800;font-size:13px;line-height:1;margin-bottom:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rt.dec{font-size:11px;letter-spacing:-.4px}.rt.dec i{display:none}
+.rt.gold{text-shadow:0 0 8px rgba(245,180,0,.55),0 1px 0 rgba(120,80,0,.35)}
 .rt i{font-style:normal;font-size:9px;margin-left:1px;vertical-align:2px}
 @media (max-width:520px){.book{min-width:13px}.rt{font-size:11px;margin-bottom:4px}.rt i{display:none}}
 .spine .stars{position:absolute;top:6px;font-size:9px;letter-spacing:-1px;opacity:.85;writing-mode:horizontal-tb;transform:rotate(180deg)}
@@ -547,9 +549,9 @@ function sceneSVG(g,c,light){
   return `<svg viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sk${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky1}"/><stop offset="1" stop-color="${sky2}"/></linearGradient><linearGradient id="vg${g}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset=".55" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="600" fill="url(#sk${g})"/>${el}${light?"":`<rect width="1600" height="600" fill="url(#vg${g})"/>`}</svg>`;
 }
 
-const RATE_COLORS=["#d64541","#e8803a","#e2b93b","#8fbf4a","#2fa36b"];
-const rateColor=r=>RATE_COLORS[Math.max(0,Math.min(4,Math.round(r)-1))];
-const fmtR=r=>r%1?Math.floor(r)+"½":String(r);
+const RATE_COLORS=["#d64541","#e8803a","#cfa62a","#5fae4e","#2fa36b"], GOLD="#f5b400";
+const rateColor=r=>r>=5?GOLD:RATE_COLORS[Math.max(0,Math.min(4,Math.floor(r)-1))];
+const fmtR=r=>r%1?r.toFixed(1):String(r);
 function setStatus(t,busy){document.getElementById("statusText").textContent=t;document.getElementById("dot").classList.toggle("busy",!!busy)}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const stars=r=>r? "★".repeat(Math.floor(r))+(r%1?"½":"") : "";
@@ -573,7 +575,7 @@ function render(){
     // height = your rating, thickness = page count
     const h=Math.round(b.rating?100+b.rating/5*180:100), w=(18+(p-80)/(900-80)*50).toFixed(1);
     const G=GENRES[b.genre]||GENRES.other;
-    return `<div class="book" style="flex:${w} 1 0">${b.rating?`<b class="rt" style="color:${rateColor(b.rating)}">${fmtR(b.rating)}<i>★</i></b>`:""}<div class="spine art-${b.genre}" tabindex="0" role="button" data-book="${esc(b.id)}" style="height:${h}px;background-color:${G.color};background-position:0 0,${hashPos(b.id)}% 100%"
+    return `<div class="book" style="flex:${w} 1 0">${b.rating?`<b class="rt${b.rating>=5?" gold":""}${b.rating%1?" dec":""}" style="color:${rateColor(b.rating)}">${fmtR(b.rating)}<i>★</i></b>`:""}<div class="spine art-${b.genre}" tabindex="0" role="button" data-book="${esc(b.id)}" style="height:${h}px;background-color:${G.color};background-position:0 0,${hashPos(b.id)}% 100%"
       title="${esc(b.title)} by ${esc(b.author)}\n${G.name} · ${b.pages||"?"} pages · finished ${b.read.toLocaleDateString("en",{day:"numeric",month:"short"})}${b.rating?" · "+stars(b.rating):""}"
       aria-label="${esc(b.title)}, ${G.name}"><span>${esc(b.title.replace(/\u2019/g,"'"))}</span></div></div>`}).join("");
   document.getElementById("legend").innerHTML=order.map(g=>`<span><i class="pat-${g}" style="background-color:${GENRES[g].color}"></i>${GENRES[g].name}</span>`).join("");
