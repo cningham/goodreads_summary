@@ -15,14 +15,14 @@
   --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
   --f-data:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --hero-tint:#2f6f62; --hero-wash:#2f6f6229;
+  --grid:rgba(27,33,37,.13);--hero-tint:#2f6f62; --hero-wash:#2f6f6229;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12171a; --surface:#1a2125; --ink:#e8ebe7; --muted:#9aa4a9; --line:#2a3338; --accent:#6cc2ae;
-  --shelf:#5b4c37; --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}}
+  --shelf:#5b4c37; --grid:rgba(232,235,231,.14); --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12171a; --surface:#1a2125; --ink:#e8ebe7; --muted:#9aa4a9; --line:#2a3338; --accent:#6cc2ae;
-  --shelf:#5b4c37; --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}
+  --shelf:#5b4c37; --grid:rgba(232,235,231,.14); --tip:#e8ebe7; --tip-fg:#12171a; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body.nodata .needs-data{display:none!important}
@@ -82,6 +82,12 @@ button:focus-visible,select:focus-visible,.btn:focus-visible,.spine:focus-visibl
 
 .shelfwrap{margin-top:22px;overflow-x:auto;padding-bottom:2px}
 .shelf{display:flex;align-items:flex-end;gap:3px;min-height:290px;padding:0 6px;border-bottom:10px solid var(--shelf);width:100%;min-width:max-content}
+.shelfrow{display:flex;gap:6px;margin-top:22px}
+.shelfrow .shelfwrap{margin-top:0;flex:1;min-width:0}
+.yaxis{position:relative;width:30px;flex:none}
+.yaxis span{position:absolute;right:0;transform:translateY(50%);font-family:var(--f-display);font-weight:800;font-size:15px;line-height:1;white-space:nowrap}
+.yaxis i{font-style:normal;font-size:10px;margin-left:1px;vertical-align:2px}
+#shelf{background:linear-gradient(to top,transparent 135px,var(--grid) 135px,var(--grid) 136px,transparent 136px),linear-gradient(to top,transparent 171px,var(--grid) 171px,var(--grid) 172px,transparent 172px),linear-gradient(to top,transparent 207px,var(--grid) 207px,var(--grid) 208px,transparent 208px),linear-gradient(to top,transparent 243px,var(--grid) 243px,var(--grid) 244px,transparent 244px),linear-gradient(to top,transparent 279px,var(--grid) 279px,var(--grid) 280px,transparent 280px)}
 .spine{position:relative;border-radius:3px 3px 1px 1px;color:#fff;display:flex;align-items:center;justify-content:center;
   writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-display);font-weight:700;font-size:12px;line-height:1.1;
   padding:10px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default;box-shadow:inset -3px 0 0 rgba(0,0,0,.22),inset 2px 0 0 rgba(255,255,255,.14),0 0 0 1px rgba(0,0,0,.35),4px 0 10px rgba(0,0,0,.35);
@@ -227,7 +233,7 @@ footer a{color:inherit}
       </div>
     </div>
     <div class="status needs-data" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span><span class="prog" id="prog" hidden><i></i></span></div>
-    <div class="shelfwrap needs-data"><div class="shelf" id="shelf"></div></div>
+    <div class="shelfrow needs-data"><div class="yaxis" aria-hidden="true"><span style="bottom:148px;color:#d64541">1<i>★</i></span><span style="bottom:184px;color:#e8803a">2<i>★</i></span><span style="bottom:220px;color:#e2b93b">3<i>★</i></span><span style="bottom:256px;color:#8fbf4a">4<i>★</i></span><span style="bottom:292px;color:#2fa36b">5<i>★</i></span></div><div class="shelfwrap"><div class="shelf" id="shelf"></div></div></div>
     <div class="legend needs-data" id="legend"></div>
     <div class="ghost" id="ghost" aria-hidden="false">
       <div class="gshelf"><i style="height:210px;flex:44 1 0"></i><i style="height:183px;flex:37 1 0"></i><i style="height:271px;flex:46 1 0"></i><i style="height:166px;flex:45 1 0"></i><i style="height:153px;flex:55 1 0"></i><i style="height:270px;flex:34 1 0"></i><i style="height:209px;flex:32 1 0"></i><i style="height:270px;flex:43 1 0"></i><i style="height:271px;flex:38 1 0"></i><i style="height:188px;flex:33 1 0"></i><i style="height:188px;flex:53 1 0"></i><i style="height:249px;flex:49 1 0"></i><i style="height:153px;flex:47 1 0"></i><i style="height:166px;flex:31 1 0"></i><i style="height:160px;flex:35 1 0"></i><i style="height:157px;flex:52 1 0"></i><i style="height:218px;flex:41 1 0"></i><i style="height:249px;flex:48 1 0"></i><i style="height:259px;flex:38 1 0"></i><i style="height:263px;flex:56 1 0"></i><i style="height:184px;flex:54 1 0"></i><i style="height:243px;flex:29 1 0"></i><i style="height:159px;flex:30 1 0"></i><i style="height:276px;flex:32 1 0"></i><i style="height:216px;flex:56 1 0"></i><i style="height:261px;flex:50 1 0"></i></div>
@@ -727,6 +733,7 @@ async function makeImage(){
   // shelf
   const base=740, avail=W-144; const ws=ys.map(b=>{const p=Math.max(80,Math.min(900,b.pages||250));return {b,p,w:24+(p-80)/820*60,h:b.rating?150+b.rating/5*220:150}});
   const tot=ws.reduce((s,x)=>s+x.w+5,0); const k=avail/tot; let x=72;
+  for(let i=1;i<=5;i++){c.fillStyle="rgba(27,33,37,.12)";c.fillRect(72,base-(150+i/5*220),W-144,1.5)}
   ws.forEach(({b,w,h})=>{w*=k;const G=GENRES[b.genre]||GENRES.other;c.fillStyle=G.color;roundRect(c,x,base-h,w,h,4);c.fill();
     const im=imgs[b.genre];if(im){c.save();roundRect(c,x,base-h,w,h,4);c.clip();const sw=1600*h/600, sx=(sw-w)*hashPos(b.id)/100;c.drawImage(im,x-sx,base-h,sw,h);const sh=c.createLinearGradient(0,base-h,0,base);sh.addColorStop(0,"rgba(0,0,0,.05)");sh.addColorStop(1,"rgba(0,0,0,.35)");c.fillStyle=sh;c.fillRect(x,base-h,w,h);c.restore()}
     c.fillStyle="rgba(0,0,0,.18)";c.fillRect(x+w-4,base-h+2,4,h-2);
@@ -734,6 +741,9 @@ async function makeImage(){
       let t=b.title;while(c.measureText(t).width>h-28&&t.length>3)t=t.slice(0,-2);if(t!==b.title)t=t.trim()+"…";c.fillText(t,0,0);c.restore()}
     x+=w+5*k});
   c.fillStyle="#c9b89a";c.fillRect(56,base,W-112,16);
+  c.font="800 20px 'Bricolage Grotesque', sans-serif";c.textAlign="right";c.textBaseline="middle";
+  ['#d64541','#e8803a','#e2b93b','#8fbf4a','#2fa36b'].forEach((col,i)=>{const y=base-(150+(i+1)/5*220);c.fillStyle=col;c.fillText((i+1)+"★",64,y)});
+  c.textAlign="left";c.textBaseline="alphabetic";
   // legend
   let lx=72,ly=790;c.font="500 22px 'Instrument Sans', sans-serif";order.slice(0,8).forEach(gk=>{const n=GENRES[gk].name+"  "+counts[gk];const nw=c.measureText(n).width+28;if(lx+nw>W-72){lx=72;ly+=34}c.fillStyle=GENRES[gk].color;roundRect(c,lx,ly,18,18,4);c.fill();c.fillStyle="#5d666c";c.fillText(n,lx+28,ly+16);lx+=nw+32});
   // stats
