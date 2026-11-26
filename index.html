@@ -563,7 +563,8 @@ function render(){
   if(!ys.length){shelf.innerHTML=`<div class="empty" style="width:100%">No books marked as read in ${year}. Try another year.</div>`}
   else shelf.innerHTML=ys.map(b=>{
     const p=Math.max(80,Math.min(900,b.pages||250));
-    const h=Math.round(150+ (p-80)/(900-80)*130), w=(26+(p-80)/(900-80)*30).toFixed(1);
+    // height = your rating, thickness = page count
+    const h=Math.round(b.rating?100+b.rating/5*180:100), w=(18+(p-80)/(900-80)*50).toFixed(1);
     const G=GENRES[b.genre]||GENRES.other;
     return `<div class="spine art-${b.genre}${b.rating>=5?" five":""}" tabindex="0" role="button" data-book="${esc(b.id)}" style="height:${h}px;flex:${w} 1 0;background-color:${G.color};background-position:0 0,${hashPos(b.id)}% 100%"
       title="${esc(b.title)} by ${esc(b.author)}\n${G.name} · ${b.pages||"?"} pages · finished ${b.read.toLocaleDateString("en",{day:"numeric",month:"short"})}${b.rating?" · "+stars(b.rating):""}"
@@ -724,7 +725,7 @@ async function makeImage(){
   c.fillStyle="#1b2125";c.fillText("on the shelf",72,305);
   const imgs={};for(const gk of order){try{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;im.src=ART[gk]});imgs[gk]=im}catch(e){}}
   // shelf
-  const base=740, avail=W-144; const ws=ys.map(b=>{const p=Math.max(80,Math.min(900,b.pages||250));return {b,p,w:34+(p-80)/820*40,h:220+(p-80)/820*150}});
+  const base=740, avail=W-144; const ws=ys.map(b=>{const p=Math.max(80,Math.min(900,b.pages||250));return {b,p,w:24+(p-80)/820*60,h:b.rating?150+b.rating/5*220:150}});
   const tot=ws.reduce((s,x)=>s+x.w+5,0); const k=avail/tot; let x=72;
   ws.forEach(({b,w,h})=>{w*=k;const G=GENRES[b.genre]||GENRES.other;c.fillStyle=G.color;roundRect(c,x,base-h,w,h,4);c.fill();
     const im=imgs[b.genre];if(im){c.save();roundRect(c,x,base-h,w,h,4);c.clip();const sw=1600*h/600, sx=(sw-w)*hashPos(b.id)/100;c.drawImage(im,x-sx,base-h,sw,h);const sh=c.createLinearGradient(0,base-h,0,base);sh.addColorStop(0,"rgba(0,0,0,.05)");sh.addColorStop(1,"rgba(0,0,0,.35)");c.fillStyle=sh;c.fillRect(x,base-h,w,h);c.restore()}
